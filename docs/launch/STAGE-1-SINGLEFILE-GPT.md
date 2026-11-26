@@ -5,8 +5,8 @@
 ---
 
 ## T-24h Pre-Flight Checklist
-- [ ] Clean git tag `v1.0.0` on standalone `SingleFileGPT.java` repo.
-- [ ] Run `java SingleFileGPT.java selftest` on a clean checkout — verify 0 failures in `< 10s`.
+- [x] Clean git tag `v1.0.0` on standalone repo: https://github.com/eyeoverthink/singlefile-gpt
+- [x] Run `java SingleFileGPT.java selftest` on a clean checkout — verified **79/79 passed in 7.63 s**.
 - [ ] Run `java SingleFileGPT.java bench dim=512 heads=8 layers=8 ctx=128 len=60 sweep=1,2,3,4,6,8` and record terminal clip.
 
 ---
