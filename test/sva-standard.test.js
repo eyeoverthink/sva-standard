@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runConformance, evaluateOpeg1 } from '../conformance/v1/runners/node-verify.mjs';
+import { runConformance, evaluateOpeg1, evaluateSvaEr1 } from '../conformance/v1/runners/node-verify.mjs';
 import { runConformanceDoc, evaluateOpeg1 as evaluateOpeg1WebCrypto } from '../conformance/v1/runners/webcrypto-verify.mjs';
 import { runInteropVerification } from '../conformance/interop/aer1-svaer1/verify-interop.mjs';
 import { evaluateOpeg1Aer1 } from '../conformance/interop/opeg1-aer1/verify-opeg1-aer1.mjs';
@@ -189,4 +189,22 @@ test('playgrounds: zero external CDN requests and zero node: imports across all 
     const js = fs.readFileSync(path.join(pg, 'lib', f), 'utf8');
     assert.ok(!/from\s+['"]node:/.test(js), `playgrounds/lib/${f} must have zero Node imports`);
   }
+});
+
+test('Pure Java SvaEr1Exporter emits SVA-ER/1 receipt + OPEG/1 envelope verified by Node & WebCrypto (and catches tamper)', async (t) => {
+  let javaOk = true;
+  try { execFileSync('java', ['-version'], { stdio: 'pipe' }); } catch { javaOk = false; }
+  if (!javaOk) { t.skip('java not installed'); return; }
+  const exporter = path.join(ROOT, 'packages', 'java-exporter', 'SvaEr1Exporter.java');
+  const out = JSON.parse(execFileSync('java', [exporter], { encoding: 'utf8' }).trim());
+  const er = evaluateSvaEr1({ receipt: out.receipt, deliverable: out.deliverable });
+  assert.deepEqual(er, { ok: true, outcome: 'verified', deliverable: 'verified', clock: 'unattested' });
+  const opNode = evaluateOpeg1(out.opegEnvelope);
+  assert.equal(opNode.ok, true);
+  assert.equal(opNode.gate, 'pass');
+  const opWc = await evaluateOpeg1WebCrypto(out.opegEnvelope);
+  assert.equal(opWc.ok, true);
+  const tampered = structuredClone(out.opegEnvelope);
+  tampered.sanitizer.rSan.finalEnergyJ = 999.0;
+  assert.equal(evaluateOpeg1(tampered).ok, false);
 });

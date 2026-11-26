@@ -8,7 +8,8 @@ Zero-dependency open wire standards (**`SVA-ER/1`**, **`OPEG/1`**, **`VSC/1`**, 
 
 > **10-Second Verification (0 GPU, 0 API keys, 0 `npm install`):**
 > - **Live Static Playgrounds ($0 GitHub Pages, 0 external CDNs):** https://eyeoverthink.github.io/sva-standard/
-> - **Faculty / Technical 1-Page Brief:** [docs/PROFESSOR-BRIEF.md](docs/PROFESSOR-BRIEF.md)
+> - **Faculty Brief & Outreach Kit:** [docs/PROFESSOR-BRIEF.md](docs/PROFESSOR-BRIEF.md) · [docs/PROFESSOR-EMAIL-TEMPLATES.md](docs/PROFESSOR-EMAIL-TEMPLATES.md)
+> - **Pure Java 21+ Drop-In Exporter:** [packages/java-exporter/SvaEr1Exporter.java](packages/java-exporter/SvaEr1Exporter.java) (`SVA-ER/1` + `OPEG/1`)
 > - **CLI Conformance, Joint AER-1 Interop & Live 4-Agency Mesh Demo:**
 >   ```bash
 >   node conformance/v1/runners/node-verify.mjs                # 106/106 PASSED (~30 ms, node:crypto + V8 WebAssembly)
