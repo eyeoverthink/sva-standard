@@ -81,6 +81,7 @@ public class SvaConformance {
         case "por1" -> verifyPor1(input);
         case "opeg1" -> verifyOpeg1(input);
         case "gov1" -> verifyGov1(input);
+        case "jev1" -> verifyJev1(input);
         default -> false;
       };
     } catch (Exception e) {
@@ -1072,6 +1073,128 @@ public class SvaConformance {
     } while ((x & 0x80) != 0);
     if (shift < 32 && (x & 0x40) != 0) res |= (~0 << shift);
     return res;
+  }
+
+  // ==================== SVA-JEV/1 Calibrated Epistemic Judge ====================
+  private static final Pattern JEV_NUM = Pattern.compile("\\b\\d+(?:\\.\\d+)*\\b");
+  private static final Pattern JEV_IDENT = Pattern.compile("\\b(?:[A-Za-z]+_[A-Za-z0-9_]+|[a-z]+[A-Z][A-Za-z0-9]*)\\b");
+
+  private static String jevFlat(String text) {
+    if (text == null) return "";
+    String s = text.replaceAll("[*_`#>]", "")
+        .replace('\u2019', '\'')
+        .replace('\u201c', '"')
+        .replace('\u201d', '"')
+        .replace('\u2013', '-')
+        .replace('\u2014', '-');
+    return s.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+  }
+
+  private static Set<String> jevExtractTerms(String text) {
+    Set<String> out = new HashSet<>();
+    if (text == null) return out;
+    var mNum = JEV_NUM.matcher(text);
+    while (mNum.find()) {
+      String tok = mNum.group();
+      if (tok.length() >= 2 || tok.contains(".")) out.add(tok.toLowerCase(Locale.ROOT));
+    }
+    var mId = JEV_IDENT.matcher(text);
+    while (mId.find()) out.add(mId.group().toLowerCase(Locale.ROOT));
+    return out;
+  }
+
+  private static boolean verifyJev1(Map<String, Object> doc) {
+    if (doc == null) return false;
+    if (!"sva-jev/1".equals(asStr(doc.get("spec")))) return false;
+    if (!"stability-signal-not-correctness".equals(asStr(doc.get("semantics")))) return false;
+    String mode = asStr(doc.get("mode"));
+    if (mode == null) return false;
+    switch (mode) {
+      case "calibration" -> {
+        Long answered = asSafeLong(doc.get("answered"));
+        Long total = asSafeLong(doc.get("total"));
+        Long right = asSafeLong(doc.get("right"));
+        Long realFound = asSafeLong(doc.get("realFound"));
+        Long realTotal = asSafeLong(doc.get("realTotal"));
+        if (answered == null || total == null || right == null || realFound == null || realTotal == null) return false;
+        if (total < 1 || answered < 0 || answered > total || right < 0 || right > answered) return false;
+        if (realTotal < 1 || realFound < 0 || realFound > realTotal) return false;
+        double z = 1.96;
+        double n = (double) total;
+        double p = (double) right / n;
+        double denom = 1.0 + (z * z) / n;
+        double center = (p + (z * z) / (2.0 * n)) / denom;
+        double margin = (z * Math.sqrt((p * (1.0 - p)) / n + (z * z) / (4.0 * n * n))) / denom;
+        double low = Math.max(0.0, center - margin);
+        double found = (double) realFound / (double) realTotal;
+        return answered >= 30 && low > (2.0 / 3.0) && found >= 0.9;
+      }
+      case "vote" -> {
+        String author = asStr(doc.get("author"));
+        Map<String, Object> ballots = asObj(doc.get("ballots"));
+        String declared = asStr(doc.get("declaredDecision"));
+        if (author == null || author.isEmpty() || ballots == null) return false;
+        if (!"settled".equals(declared) && !"escalate_human".equals(declared)) return false;
+        int valid = 0, clear = 0;
+        for (Map.Entry<String, Object> e : ballots.entrySet()) {
+          if (author.equals(e.getKey())) continue;
+          String choice = asStr(e.getValue());
+          if (!"decide".equals(choice) && !"noise".equals(choice) && !"settled".equals(choice)) continue;
+          valid++;
+          if (!"decide".equals(choice)) clear++;
+        }
+        String computed = (valid >= 2 && ((double) clear / (double) valid) >= 0.8) ? "settled" : "escalate_human";
+        return computed.equals(declared);
+      }
+      case "quote_check" -> {
+        String document = asStr(doc.get("document"));
+        List<Object> verdicts = asList(doc.get("verdicts"));
+        Long declaredMet = asSafeLong(doc.get("declaredMetCount"));
+        if (document == null || verdicts == null || verdicts.isEmpty() || declaredMet == null || declaredMet < 0) return false;
+        String plain = jevFlat(document);
+        long accepted = 0, rejected = 0;
+        for (Object vo : verdicts) {
+          Map<String, Object> v = asObj(vo);
+          if (v == null) return false;
+          String id = asStr(v.get("id"));
+          if (id == null || id.isEmpty() || !(v.get("met") instanceof Boolean met)) return false;
+          if (met) {
+            String q = jevFlat(asStr(v.get("quote")));
+            if (q.length() >= 12 && plain.contains(q)) accepted++;
+            else rejected++;
+          }
+        }
+        return rejected == 0 && accepted == declaredMet;
+      }
+      case "claim_trace" -> {
+        List<Object> ledgerTexts = asList(doc.get("ledgerTexts"));
+        String briefText = asStr(doc.get("briefText"));
+        List<Object> plantedFakes = asList(doc.get("plantedFakes"));
+        boolean allowNewTerms = Boolean.TRUE.equals(doc.get("allowNewTerms"));
+        if (ledgerTexts == null || ledgerTexts.isEmpty() || briefText == null || plantedFakes == null || plantedFakes.isEmpty()) return false;
+        for (Object fo : plantedFakes) {
+          Map<String, Object> f = asObj(fo);
+          if (f == null || asStr(f.get("id")) == null) return false;
+          String verdict = asStr(f.get("verdict"));
+          if (!"supported".equals(verdict) && !"unsupported".equals(verdict) && !"contradicted".equals(verdict)) return false;
+          if ("supported".equals(verdict)) return false;
+        }
+        Set<String> ledgerTerms = new HashSet<>();
+        for (Object lo : ledgerTexts) {
+          String lt = asStr(lo);
+          if (lt == null) return false;
+          ledgerTerms.addAll(jevExtractTerms(lt));
+        }
+        Set<String> briefTerms = jevExtractTerms(briefText);
+        if (!allowNewTerms) {
+          for (String tok : briefTerms) {
+            if (!ledgerTerms.contains(tok)) return false;
+          }
+        }
+        return true;
+      }
+      default -> { return false; }
+    }
   }
 
   // ==================== Helpers & Minimal RFC 8259 JSON Parser ====================

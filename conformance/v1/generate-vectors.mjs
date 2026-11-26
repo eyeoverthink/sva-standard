@@ -874,8 +874,92 @@ function makeGovBundle({ status = 'ACTIVE', agent = 'mac-hermes', allowedAgents 
   add('gov-04', 'gov1', 'Unsigned status flip (PAUSED -> ACTIVE) rejected by Ed25519 stone signature check', false, tampered);
 }
 
+// ==================== 10. SVA-JEV/1 CALIBRATED EPISTEMIC JUDGE (10 vectors) ====================
+{
+  const SEM = 'stability-signal-not-correctness';
+  add('jev-01', 'jev1', 'Calibrated judge passes Wilson 95% CI (> 2/3), sample floor (>= 30), and real-issue recall (>= 90%)', true, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'calibration',
+    answered: 36, total: 36, right: 33, realFound: 12, realTotal: 12,
+  });
+  add('jev-02', 'jev1', 'Uncalibrated judge rejected when Wilson 95% CI lower bound (0.560) fails to clear 2/3 baseline despite 72.2% raw accuracy', false, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'calibration',
+    answered: 36, total: 36, right: 26, realFound: 11, realTotal: 12,
+  });
+  add('jev-03', 'jev1', 'JEV vote settles warning with 4 independent non-author voters at 100% clear consensus (>= 80%, author excluded)', true, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'vote',
+    author: 'anthropic:claude-sonnet',
+    ballots: {
+      'anthropic:claude-sonnet': 'settled',
+      'openai:gpt-5': 'settled',
+      'google:gemini-2.5-pro': 'noise',
+      'xai:grok-4': 'settled',
+      'ollama:qwen3': 'settled',
+    },
+    declaredDecision: 'settled',
+  });
+  add('jev-04', 'jev1', 'JEV vote rejects settling when author self-vote exclusion leaves fewer than 2 independent voters', false, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'vote',
+    author: 'anthropic:claude-sonnet',
+    ballots: {
+      'anthropic:claude-sonnet': 'settled',
+      'openai:gpt-5': 'settled',
+    },
+    declaredDecision: 'settled',
+  });
+  add('jev-05', 'jev1', 'JEV quote_check accepts met verdict backed by exact >= 12-char normalized substring from document', true, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'quote_check',
+    document: '## Build steps\n1. Persist every stage delta via **atomic temp-file rename** before sealing the audit record.',
+    verdicts: [
+      { id: 'c1', met: true, quote: 'atomic temp-file rename before sealing' },
+      { id: 'c2', met: false, quote: '' },
+    ],
+    declaredMetCount: 1,
+  });
+  add('jev-06', 'jev1', 'JEV quote_check mechanically rejects met verdict with hallucinated quote absent from document', false, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'quote_check',
+    document: '## Build steps\n1. Persist every stage delta via atomic temp-file rename before sealing the audit record.',
+    verdicts: [
+      { id: 'c1', met: true, quote: 'stores private keys inside a FIPS-140-3 hardware HSM' },
+    ],
+    declaredMetCount: 1,
+  });
+  add('jev-07', 'jev1', 'JEV claim_trace passes when all planted fakes are caught (0 supported) and all brief numbers/identifiers trace to ledger', true, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'claim_trace',
+    ledgerTexts: [
+      '[stage 1] Enforce 80% quorum across 15000 char padded controls using verify_run and mergeDelta.',
+      '[stage 5] Emit unattested clock status when offline.',
+    ],
+    briefText: 'The pipeline enforces 80% consensus on 15000 char controls via verify_run and mergeDelta.',
+    plantedFakes: [
+      { id: 'fake-1', verdict: 'unsupported' },
+      { id: 'fake-2', verdict: 'contradicted' },
+    ],
+  });
+  add('jev-08', 'jev1', 'JEV claim_trace fails closed when judge marks a hidden planted fake as supported', false, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'claim_trace',
+    ledgerTexts: ['[stage 1] Enforce 80% quorum using verify_run.'],
+    briefText: 'Enforce 80% quorum using verify_run.',
+    plantedFakes: [
+      { id: 'fake-1', verdict: 'unsupported' },
+      { id: 'fake-2', verdict: 'supported' },
+    ],
+  });
+  add('jev-09', 'jev1', 'JEV claim_trace zero-LLM new_terms scanner catches invented number/identifier absent from ledger', false, {
+    spec: 'sva-jev/1', semantics: SEM, mode: 'claim_trace',
+    ledgerTexts: ['[stage 1] Enforce 80% quorum using verify_run.'],
+    briefText: 'Enforce 80% quorum with 9999 retries via verify_run and invented_helper_v2.',
+    plantedFakes: [
+      { id: 'fake-1', verdict: 'unsupported' },
+    ],
+  });
+  add('jev-10', 'jev1', 'SVA-JEV/1 envelope missing required stability-signal-not-correctness semantics label rejected fail-closed', false, {
+    spec: 'sva-jev/1', semantics: 'cryptographic-truth', mode: 'calibration',
+    answered: 36, total: 36, right: 36, realFound: 12, realTotal: 12,
+  });
+}
+
 const doc = {
-  specVersion: 'sva-conformance/1.6',
+  specVersion: 'sva-conformance/1.7',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {
@@ -888,6 +972,7 @@ const doc = {
     por1: vectors.filter((v) => v.suite === 'por1').length,
     opeg1: vectors.filter((v) => v.suite === 'opeg1').length,
     gov1: vectors.filter((v) => v.suite === 'gov1').length,
+    jev1: vectors.filter((v) => v.suite === 'jev1').length,
   },
   vectors,
 };

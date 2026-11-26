@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SVA-JEV/1 Calibrated Epistemic Judge Lab — EyeOverThink</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>SVA-JEV/1 — Calibrated Epistemic Judge Lab</h1>
+        <div class="kv">
+          <span class="pill ok">0 backend servers</span>
+          <span class="pill ok">0 LLM calls needed to verify</span>
+          <span class="pill accent">Wilson 95% CI · JEV · Quote Check · Planted Fakes</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">Hub</a>
+        <a href="./receipt-lab.html">1. Receipt Lab</a>
+        <a href="./membrane-lab.html">2. Membrane Lab</a>
+        <a href="./skill-lab.html">3. Skill Lab</a>
+        <a href="./opeg-lab.html">4. OPEG Gate Lab</a>
+        <a href="./judge-lab.html" aria-current="page">5. Judge Lab</a>
+      </nav>
+    </header>
+
+    <p class="lead">
+      <strong>SVA-JEV/1</strong> audits open-ended plans and multi-agent reviews without pretending LLM agreement equals truth.
+      Every verdict is stamped <code>stability-signal-not-correctness</code> and checked deterministically against four fail-closed gates
+      implemented in <a href="https://github.com/eyeoverthink/logic-chain-judge"><code>eyeoverthink/logic-chain-judge</code></a>:
+      Wilson 95% CI panel calibration, independent JEV voting (author self-vote excluded), mandatory verbatim quote matching, and
+      planted-fake + zero-LLM <code>new_terms</code> invention detection.
+    </p>
+
+    <div class="card" style="margin-bottom:18px">
+      <h2>Live Epistemic Judge Scenarios (Deterministic Browser Verification)</h2>
+      <div class="kv" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="btnCalPass" class="btn primary">1. Calibrated Judge (Wilson 95% CI Pass)</button>
+        <button id="btnCalFail" class="btn danger">2. Deceptive 72% Judge (Wilson Low &le; 2/3 Block)</button>
+        <button id="btnSelfVote" class="btn danger">3. Author Self-Vote Settlement Bypass (Block)</button>
+        <button id="btnQuoteBad" class="btn warn">4. Hallucinated Verbatim Quote (Mechanical Reject)</button>
+        <button id="btnTracePass" class="btn primary">5. Claim Trace + Planted Fakes (Clean Pass)</button>
+        <button id="btnNewTerms" class="btn danger">6. Invented Number/ID + Missed Fake (Block)</button>
+      </div>
+      <div id="judgeBanner" class="banner" style="margin-top:14px">
+        Ready. Click any scenario above to run the exact <code>evaluateSvaJev1()</code> verifier used in the 106-vector tri-runtime conformance suite.
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Editable <code>sva-jev/1</code> Envelope (JSON)</h3>
+        <textarea id="inputJson" class="code" rows="16" style="width:100%;box-sizing:border-box"></textarea>
+        <div class="kv" style="margin-top:10px">
+          <button id="btnRunCustom" class="btn primary">Evaluate Custom JSON</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Deterministic Gate Verdict (<code>evaluateSvaJev1</code>)</h3>
+        <pre id="outVerdict" class="code" style="min-height:290px;overflow:auto">// Click a scenario or evaluate custom JSON...</pre>
+      </section>
+    </div>
+
+    <footer>
+      Apache-2.0 · <a href="https://github.com/eyeoverthink/sva-standard">eyeoverthink/sva-standard</a> ·
+      Reference implementation: <a href="https://github.com/eyeoverthink/logic-chain-judge">eyeoverthink/logic-chain-judge</a> ·
+      All judge gates execute client-side from <code>playgrounds/lib/judge-verify.js</code>.
+    </footer>
+  </div>
+
+  <script type="module">
+    import { evaluateSvaJev1, JEV_SEMANTICS } from './lib/judge-verify.js';
+
+    const inputEl = document.getElementById('inputJson');
+    const outEl = document.getElementById('outVerdict');
+    const banner = document.getElementById('judgeBanner');
+
+    const SCENARIOS = {
+      calPass: {
+        label: 'Scenario 1 — Calibrated judge clears Wilson 95% CI (> 0.667), >= 30 samples, and 100% real-issue recall',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'calibration',
+          answered: 36,
+          total: 36,
+          right: 33,
+          realFound: 12,
+          realTotal: 12,
+        },
+      },
+      calFail: {
+        label: 'Scenario 2 — 72.2% raw accuracy looks good, but Wilson 95% lower bound (0.560) fails to beat 66.7% trivial baseline',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'calibration',
+          answered: 36,
+          total: 36,
+          right: 26,
+          realFound: 11,
+          realTotal: 12,
+        },
+      },
+      selfVote: {
+        label: 'Scenario 3 — Author tries to settle its own warning with only 1 independent voter (author excluded -> blocked)',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'vote',
+          author: 'anthropic:claude-sonnet',
+          ballots: {
+            'anthropic:claude-sonnet': 'settled',
+            'openai:gpt-5': 'settled',
+          },
+          declaredDecision: 'settled',
+        },
+      },
+      quoteBad: {
+        label: 'Scenario 4 — Judge marks met=true with a hallucinated hardware HSM quote absent from the brief',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'quote_check',
+          document: '## Build steps\n1. Persist every stage delta via **atomic temp-file rename** before sealing the audit record.',
+          verdicts: [
+            { id: 'c1', met: true, quote: 'stores private keys inside a FIPS-140-3 hardware HSM' },
+          ],
+          declaredMetCount: 1,
+        },
+      },
+      tracePass: {
+        label: 'Scenario 5 — All hidden planted fakes caught (0 supported) and all numbers/identifiers trace back to the ledger',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'claim_trace',
+          ledgerTexts: [
+            '[stage 1] Enforce 80% quorum across 15000 char padded controls using verify_run and mergeDelta.',
+            '[stage 5] Emit unattested clock status when offline.',
+          ],
+          briefText: 'The pipeline enforces 80% consensus on 15000 char controls via verify_run and mergeDelta.',
+          plantedFakes: [
+            { id: 'fake-1', verdict: 'unsupported' },
+            { id: 'fake-2', verdict: 'contradicted' },
+          ],
+        },
+      },
+      newTerms: {
+        label: 'Scenario 6 — Brief invents 9999 retries & invented_helper_v2 absent from ledger (caught with 0 LLM calls)',
+        doc: {
+          spec: 'sva-jev/1',
+          semantics: JEV_SEMANTICS,
+          mode: 'claim_trace',
+          ledgerTexts: ['[stage 1] Enforce 80% quorum using verify_run.'],
+          briefText: 'Enforce 80% quorum with 9999 retries via verify_run and invented_helper_v2.',
+          plantedFakes: [
+            { id: 'fake-1', verdict: 'unsupported' },
+            { id: 'fake-2', verdict: 'supported' },
+          ],
+        },
+      },
+    };
+
+    function runDoc(doc, label = 'Custom SVA-JEV/1 evaluation') {
+      inputEl.value = JSON.stringify(doc, null, 2);
+      const res = evaluateSvaJev1(doc);
+      outEl.textContent = JSON.stringify(res, null, 2);
+      banner.className = 'banner ' + (res.ok ? 'ok' : 'bad');
+      banner.innerHTML = res.ok
+        ? `<strong>PASS (${res.mode}):</strong> ${label}`
+        : `<strong>BLOCKED FAIL-CLOSED (${res.mode}):</strong> ${res.reason}`;
+    }
+
+    document.getElementById('btnCalPass').onclick = () => runDoc(SCENARIOS.calPass.doc, SCENARIOS.calPass.label);
+    document.getElementById('btnCalFail').onclick = () => runDoc(SCENARIOS.calFail.doc, SCENARIOS.calFail.label);
+    document.getElementById('btnSelfVote').onclick = () => runDoc(SCENARIOS.selfVote.doc, SCENARIOS.selfVote.label);
+    document.getElementById('btnQuoteBad').onclick = () => runDoc(SCENARIOS.quoteBad.doc, SCENARIOS.quoteBad.label);
+    document.getElementById('btnTracePass').onclick = () => runDoc(SCENARIOS.tracePass.doc, SCENARIOS.tracePass.label);
+    document.getElementById('btnNewTerms').onclick = () => runDoc(SCENARIOS.newTerms.doc, SCENARIOS.newTerms.label);
+    document.getElementById('btnRunCustom').onclick = () => {
+      try {
+        runDoc(JSON.parse(inputEl.value));
+      } catch (e) {
+        banner.className = 'banner bad';
+        banner.textContent = `JSON parse error: ${e.message}`;
+        outEl.textContent = String(e);
+      }
+    };
+
+    // Load default scenario on open
+    runDoc(SCENARIOS.calPass.doc, SCENARIOS.calPass.label);
+  </script>
+</body>
+</html>

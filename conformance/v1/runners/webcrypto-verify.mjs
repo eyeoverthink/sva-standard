@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Reference Verifier #2: W3C Browser WebCrypto (globalThis.crypto.subtle — ZERO node:crypto imports!).
 // The exported verifyVector() function is 100% browser-native and runs identically in browsers and Node 22+.
+import { evaluateSvaJev1 } from '../../../playgrounds/lib/judge-verify.js';
+export { evaluateSvaJev1 };
 
 const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 const HEX64 = /^[0-9a-f]{64}$/i;
@@ -629,6 +631,7 @@ export async function verifyVector(v) {
     case 'por1': return verifyPor1(v.input);
     case 'opeg1': return verifyOpeg1(v.input);
     case 'gov1': return verifyGov1(v.input);
+    case 'jev1': return evaluateSvaJev1(v.input).ok === true;
     default: return false;
   }
 }

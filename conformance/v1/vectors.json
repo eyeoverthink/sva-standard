@@ -1,7 +1,7 @@
 {
-  "specVersion": "sva-conformance/1.6",
+  "specVersion": "sva-conformance/1.7",
   "generatedWith": "node:v24.11.1",
-  "total": 96,
+  "total": 106,
   "suites": {
     "jcs": 10,
     "merkle": 10,
@@ -11,7 +11,8 @@
     "wasm_exec": 14,
     "por1": 4,
     "opeg1": 6,
-    "gov1": 4
+    "gov1": 4,
+    "jev1": 10
   },
   "vectors": [
     {
@@ -4605,6 +4606,208 @@
           "witnessReceiptSha256": "90227ce5f06a045edb7530fa2517ff2cf7e7a38e49ffef9d50b686f30a6a6b0e",
           "issuedAt": "2026-11-26T00:00:00.000Z"
         }
+      }
+    },
+    {
+      "id": "jev-01",
+      "suite": "jev1",
+      "description": "Calibrated judge passes Wilson 95% CI (> 2/3), sample floor (>= 30), and real-issue recall (>= 90%)",
+      "expectOk": true,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "calibration",
+        "answered": 36,
+        "total": 36,
+        "right": 33,
+        "realFound": 12,
+        "realTotal": 12
+      }
+    },
+    {
+      "id": "jev-02",
+      "suite": "jev1",
+      "description": "Uncalibrated judge rejected when Wilson 95% CI lower bound (0.560) fails to clear 2/3 baseline despite 72.2% raw accuracy",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "calibration",
+        "answered": 36,
+        "total": 36,
+        "right": 26,
+        "realFound": 11,
+        "realTotal": 12
+      }
+    },
+    {
+      "id": "jev-03",
+      "suite": "jev1",
+      "description": "JEV vote settles warning with 4 independent non-author voters at 100% clear consensus (>= 80%, author excluded)",
+      "expectOk": true,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "vote",
+        "author": "anthropic:claude-sonnet",
+        "ballots": {
+          "anthropic:claude-sonnet": "settled",
+          "openai:gpt-5": "settled",
+          "google:gemini-2.5-pro": "noise",
+          "xai:grok-4": "settled",
+          "ollama:qwen3": "settled"
+        },
+        "declaredDecision": "settled"
+      }
+    },
+    {
+      "id": "jev-04",
+      "suite": "jev1",
+      "description": "JEV vote rejects settling when author self-vote exclusion leaves fewer than 2 independent voters",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "vote",
+        "author": "anthropic:claude-sonnet",
+        "ballots": {
+          "anthropic:claude-sonnet": "settled",
+          "openai:gpt-5": "settled"
+        },
+        "declaredDecision": "settled"
+      }
+    },
+    {
+      "id": "jev-05",
+      "suite": "jev1",
+      "description": "JEV quote_check accepts met verdict backed by exact >= 12-char normalized substring from document",
+      "expectOk": true,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "quote_check",
+        "document": "## Build steps\n1. Persist every stage delta via **atomic temp-file rename** before sealing the audit record.",
+        "verdicts": [
+          {
+            "id": "c1",
+            "met": true,
+            "quote": "atomic temp-file rename before sealing"
+          },
+          {
+            "id": "c2",
+            "met": false,
+            "quote": ""
+          }
+        ],
+        "declaredMetCount": 1
+      }
+    },
+    {
+      "id": "jev-06",
+      "suite": "jev1",
+      "description": "JEV quote_check mechanically rejects met verdict with hallucinated quote absent from document",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "quote_check",
+        "document": "## Build steps\n1. Persist every stage delta via atomic temp-file rename before sealing the audit record.",
+        "verdicts": [
+          {
+            "id": "c1",
+            "met": true,
+            "quote": "stores private keys inside a FIPS-140-3 hardware HSM"
+          }
+        ],
+        "declaredMetCount": 1
+      }
+    },
+    {
+      "id": "jev-07",
+      "suite": "jev1",
+      "description": "JEV claim_trace passes when all planted fakes are caught (0 supported) and all brief numbers/identifiers trace to ledger",
+      "expectOk": true,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "claim_trace",
+        "ledgerTexts": [
+          "[stage 1] Enforce 80% quorum across 15000 char padded controls using verify_run and mergeDelta.",
+          "[stage 5] Emit unattested clock status when offline."
+        ],
+        "briefText": "The pipeline enforces 80% consensus on 15000 char controls via verify_run and mergeDelta.",
+        "plantedFakes": [
+          {
+            "id": "fake-1",
+            "verdict": "unsupported"
+          },
+          {
+            "id": "fake-2",
+            "verdict": "contradicted"
+          }
+        ]
+      }
+    },
+    {
+      "id": "jev-08",
+      "suite": "jev1",
+      "description": "JEV claim_trace fails closed when judge marks a hidden planted fake as supported",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "claim_trace",
+        "ledgerTexts": [
+          "[stage 1] Enforce 80% quorum using verify_run."
+        ],
+        "briefText": "Enforce 80% quorum using verify_run.",
+        "plantedFakes": [
+          {
+            "id": "fake-1",
+            "verdict": "unsupported"
+          },
+          {
+            "id": "fake-2",
+            "verdict": "supported"
+          }
+        ]
+      }
+    },
+    {
+      "id": "jev-09",
+      "suite": "jev1",
+      "description": "JEV claim_trace zero-LLM new_terms scanner catches invented number/identifier absent from ledger",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "stability-signal-not-correctness",
+        "mode": "claim_trace",
+        "ledgerTexts": [
+          "[stage 1] Enforce 80% quorum using verify_run."
+        ],
+        "briefText": "Enforce 80% quorum with 9999 retries via verify_run and invented_helper_v2.",
+        "plantedFakes": [
+          {
+            "id": "fake-1",
+            "verdict": "unsupported"
+          }
+        ]
+      }
+    },
+    {
+      "id": "jev-10",
+      "suite": "jev1",
+      "description": "SVA-JEV/1 envelope missing required stability-signal-not-correctness semantics label rejected fail-closed",
+      "expectOk": false,
+      "input": {
+        "spec": "sva-jev/1",
+        "semantics": "cryptographic-truth",
+        "mode": "calibration",
+        "answered": 36,
+        "total": 36,
+        "right": 36,
+        "realFound": 12,
+        "realTotal": 12
       }
     }
   ]

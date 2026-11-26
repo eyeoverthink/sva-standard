@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { evaluateSvaJev1 } from '../../../playgrounds/lib/judge-verify.js';
+export { evaluateSvaJev1 };
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -609,6 +611,7 @@ export function verifyVector(v) {
     case 'por1': return verifyPor1(v.input);
     case 'opeg1': return verifyOpeg1(v.input);
     case 'gov1': return verifyGov1(v.input);
+    case 'jev1': return evaluateSvaJev1(v.input).ok === true;
     default: return false;
   }
 }

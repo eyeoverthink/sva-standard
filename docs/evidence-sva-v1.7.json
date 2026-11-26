@@ -1,0 +1,29 @@
+{
+  "release": "v1.7.0",
+  "date": "2026-11-26",
+  "summary": "Added SVA-JEV/1 Calibrated Epistemic Judge specification, 10 deterministic golden conformance vectors (106/106 tri-runtime pass across Node V8, W3C Browser WebCrypto, and Single-File Pure Java 25), live Judge Lab zero-backend playground (playgrounds/judge-lab.html), companion eyeoverthink/logic-chain-judge v1.0.0 with SVA-ER/1 + OPEG/1 bridge, and docs/PROFESSOR-BRIEF.md. Preserved pinned aer1-svaer1 interop LF blob SHA-256 unchanged.",
+  "conformance": {
+    "total": 106,
+    "suites": {
+      "jcs": 10,
+      "merkle": 10,
+      "svaer1": 17,
+      "vsc1": 17,
+      "ema1": 14,
+      "wasm_exec": 14,
+      "por1": 4,
+      "opeg1": 6,
+      "gov1": 4,
+      "jev1": 10
+    },
+    "runtimes": [
+      { "runtime": "node:v24.11.1 (node:crypto)", "passed": 106, "failed": 0, "durationMs": 29.77 },
+      { "runtime": "W3C WebCrypto (globalThis.crypto.subtle, zero node:crypto)", "passed": 106, "failed": 0, "durationMs": 49.71 },
+      { "runtime": "java:25.0.1 (single-file pure JDK, zero deps)", "passed": 106, "failed": 0, "durationMs": 306.26 }
+    ]
+  },
+  "interop": {
+    "aer1Svaer1": { "passed": 7, "total": 7, "pinnedVectorsLfSha256": "796a5c8783b9927b41682bf35acda74517ccafd9b16fcda5200330bf19dfcf76" },
+    "opeg1Aer1": { "gate": "pass", "negativeTamperBlocked": true }
+  }
+}

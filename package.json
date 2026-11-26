@@ -1,8 +1,8 @@
 {
   "name": "sva-standard",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "type": "module",
-  "description": "Sovereign Verified Agency (SVA) Open Standards: SVA-ER/1, OPEG/1, VSC/1, EMA/1, POR/1, SVA-GOV/1 — 96-vector tri-runtime conformance + AER-1 interop & OPEG/1+AER-1 gate & offline browser playgrounds",
+  "description": "Sovereign Verified Agency (SVA) Open Standards: SVA-ER/1, OPEG/1, VSC/1, EMA/1, POR/1, SVA-GOV/1, SVA-JEV/1 — 106-vector tri-runtime conformance + AER-1 interop + calibrated epistemic judge & offline browser playgrounds",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

@@ -20,44 +20,45 @@ const VEC = path.join(ROOT, 'conformance', 'v1', 'vectors.json');
 const JAVA_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'SvaConformance.java');
 const WEBCRYPTO_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'webcrypto-verify.mjs');
 
-test('specs and 96-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
-  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md', 'OPEG-1.md', 'POR-1.md', 'SVA-GOV-1.md']) {
+test('specs and 106-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
+  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md', 'OPEG-1.md', 'POR-1.md', 'SVA-GOV-1.md', 'SVA-JEV-1.md']) {
     assert.ok(fs.existsSync(path.join(ROOT, 'specs', spec)), `missing specs/${spec}`);
   }
   assert.ok(!fs.existsSync(path.join(ROOT, 'specs', 'AER-1.md')), 'legacy colliding specs/AER-1.md must be removed');
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
-  assert.equal(doc.total, 96);
+  assert.equal(doc.total, 106);
   assert.equal(doc.suites.svaer1, 17);
   assert.equal(doc.suites.vsc1, 17);
   assert.equal(doc.suites.wasm_exec, 14);
   assert.equal(doc.suites.por1, 4);
   assert.equal(doc.suites.opeg1, 6);
   assert.equal(doc.suites.gov1, 4);
+  assert.equal(doc.suites.jev1, 10);
   const wcSrc = fs.readFileSync(WEBCRYPTO_RUNNER, 'utf8');
   assert.ok(!/(?:from|import\s*\(|require\s*\()\s*['"]node:crypto['"]/.test(wcSrc));
 });
 
-test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 96/96 golden vectors', () => {
+test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 106/106 golden vectors', () => {
   const res = runConformance(VEC);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 96);
+  assert.equal(res.passed, 106);
 });
 
-test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 96/96 golden vectors', async () => {
+test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 106/106 golden vectors', async () => {
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
   const res = await runConformanceDoc(doc);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 96);
+  assert.equal(res.passed, 106);
 });
 
-test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 96/96 golden vectors', (t) => {
+test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 106/106 golden vectors', (t) => {
   let javaOk = true;
   try { execFileSync('java', ['-version'], { stdio: 'pipe' }); } catch { javaOk = false; }
   if (!javaOk) { t.skip('java not installed'); return; }
   const out = execFileSync('java', [JAVA_RUNNER, VEC], { encoding: 'utf8' });
   const res = JSON.parse(out.trim());
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 96);
+  assert.equal(res.passed, 106);
 });
 
 test('Joint AER-1 (draft-zambo-aer1-26, kit 1.6.1) <-> SVA-ER/1 clock & key-binding interop harness passes 7/7', () => {
@@ -179,12 +180,12 @@ test('standalone packages: publish manifests, APIs & CLIs for ai-receipt, privac
 
 test('playgrounds: zero external CDN requests and zero node: imports across all static assets', () => {
   const pg = path.join(ROOT, 'playgrounds');
-  for (const f of ['index.html', 'receipt-lab.html', 'membrane-lab.html', 'skill-lab.html', 'opeg-lab.html']) {
+  for (const f of ['index.html', 'receipt-lab.html', 'membrane-lab.html', 'skill-lab.html', 'opeg-lab.html', 'judge-lab.html']) {
     const html = fs.readFileSync(path.join(pg, f), 'utf8');
     assert.ok(!/<script[^>]+src=["']https?:\/\//i.test(html), `${f} must not load external scripts`);
     assert.ok(!/<link[^>]+href=["']https?:\/\//i.test(html), `${f} must not load external CSS`);
   }
-  for (const f of ['receipt-verify.js', 'membrane-core.js', 'sentinel.js', 'stream-guard.js', 'binder-induction.js']) {
+  for (const f of ['receipt-verify.js', 'membrane-core.js', 'sentinel.js', 'stream-guard.js', 'binder-induction.js', 'judge-verify.js']) {
     const js = fs.readFileSync(path.join(pg, 'lib', f), 'utf8');
     assert.ok(!/from\s+['"]node:/.test(js), `playgrounds/lib/${f} must have zero Node imports`);
   }
