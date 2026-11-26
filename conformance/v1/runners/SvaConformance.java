@@ -443,8 +443,9 @@ public class SvaConformance {
     return true;
   }
 
-  // ==================== Phase 27: Pure-Java Fuel-Metered WebAssembly Core 1.0 VM ====================
-  private record WasmResult(Integer value, String trap) {}
+  // ==================== Phase 27/28: Pure-Java Fuel-Metered WebAssembly Core 1.0 VM (i32 + f64 + Linear Memory) ====================
+  private record WasmResult(Double value, String trap) {}
+  private record DataSeg(int offset, byte[] data) {}
 
   private static boolean verifyWasmExec(Map<String, Object> in) throws Exception {
     Map<String, Object> cap = asObj(in.get("capsule"));
@@ -459,46 +460,87 @@ public class SvaConformance {
       if (!Objects.equals(asStr(rev.get("targetCodeSha256")), asStr(cap.get("codeSha256")))) return false;
       Map<String, Object> ce = asObj(rev.get("counterexample"));
       List<Object> ceArgs = ce != null ? asList(ce.get("input")) : null;
-      Integer expected = ce != null ? asSafeInt(ce.get("expected")) : null;
-      Integer observed = ce != null ? asSafeInt(ce.get("observed")) : null;
+      Double expected = ce != null ? asNum(ce.get("expected")) : null;
+      Double observed = ce != null ? asNum(ce.get("observed")) : null;
       if (ceArgs == null || expected == null || observed == null) return false;
-      int[] iargs = toIntArgs(ceArgs);
-      if (iargs == null) return false;
-      WasmResult r = runWasmPureJava(bytes, iargs, fuelLimit);
-      return r.trap() == null && Objects.equals(r.value(), observed) && !Objects.equals(r.value(), expected);
+      double[] dargs = toNumArgs(ceArgs);
+      if (dargs == null) return false;
+      WasmResult r = runWasmPureJava(bytes, dargs, fuelLimit);
+      return r.trap() == null && r.value() != null && Double.compare(r.value(), observed) == 0 && Double.compare(r.value(), expected) != 0;
     }
 
     List<Object> argList = asList(in.get("args"));
-    int[] iargs = argList != null ? toIntArgs(argList) : new int[0];
-    if (iargs == null) return false;
-    WasmResult r = runWasmPureJava(bytes, iargs, fuelLimit);
+    double[] dargs = argList != null ? toNumArgs(argList) : new double[0];
+    if (dargs == null) return false;
+    WasmResult r = runWasmPureJava(bytes, dargs, fuelLimit);
     String expectTrap = asStr(in.get("expectTrap"));
     if (expectTrap != null) return expectTrap.equals(r.trap());
-    Integer expectOut = asSafeInt(in.get("expectOutput"));
-    return r.trap() == null && Objects.equals(r.value(), expectOut);
+    Double expectOut = asNum(in.get("expectOutput"));
+    return r.trap() == null && r.value() != null && expectOut != null && Double.compare(r.value(), expectOut) == 0;
   }
 
-  private static int[] toIntArgs(List<Object> list) {
-    int[] out = new int[list.size()];
+  private static Double asNum(Object o) {
+    if (o instanceof Number n) {
+      double d = n.doubleValue();
+      return Double.isFinite(d) ? d : null;
+    }
+    return null;
+  }
+
+  private static double[] toNumArgs(List<Object> list) {
+    double[] out = new double[list.size()];
     for (int i = 0; i < list.size(); i++) {
-      Integer v = asSafeInt(list.get(i));
+      Double v = asNum(list.get(i));
       if (v == null) return null;
       out[i] = v;
     }
     return out;
   }
 
-  private static WasmResult runWasmPureJava(byte[] bytes, int[] args, int fuelLimit) {
+  private static int readInt32LE(byte[] mem, int off) {
+    return (mem[off] & 0xff)
+        | ((mem[off + 1] & 0xff) << 8)
+        | ((mem[off + 2] & 0xff) << 16)
+        | ((mem[off + 3] & 0xff) << 24);
+  }
+
+  private static void writeInt32LE(byte[] mem, int off, int val) {
+    mem[off] = (byte) (val & 0xff);
+    mem[off + 1] = (byte) ((val >>> 8) & 0xff);
+    mem[off + 2] = (byte) ((val >>> 16) & 0xff);
+    mem[off + 3] = (byte) ((val >>> 24) & 0xff);
+  }
+
+  private static long readInt64LE(byte[] mem, int off) {
+    return (mem[off] & 0xffL)
+        | ((mem[off + 1] & 0xffL) << 8)
+        | ((mem[off + 2] & 0xffL) << 16)
+        | ((mem[off + 3] & 0xffL) << 24)
+        | ((mem[off + 4] & 0xffL) << 32)
+        | ((mem[off + 5] & 0xffL) << 40)
+        | ((mem[off + 6] & 0xffL) << 48)
+        | ((mem[off + 7] & 0xffL) << 56);
+  }
+
+  private static void writeInt64LE(byte[] mem, int off, long val) {
+    for (int i = 0; i < 8; i++) mem[off + i] = (byte) ((val >>> (i * 8)) & 0xffL);
+  }
+
+  private static WasmResult runWasmPureJava(byte[] bytes, double[] args, int fuelLimit) {
     int[] p = new int[] { 0 };
     if (bytes.length < 8) return new WasmResult(null, "invalid_wasm");
     byte[] magic = new byte[] { 0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00 };
     for (int i = 0; i < 8; i++) if (bytes[p[0]++] != magic[i]) return new WasmResult(null, "invalid_wasm");
 
-    List<Integer> typeParamCounts = new ArrayList<>();
+    List<byte[]> typeParams = new ArrayList<>();
+    List<byte[]> typeResults = new ArrayList<>();
     List<Integer> funcTypeIdxs = new ArrayList<>();
     Map<String, Integer> exports = new HashMap<>();
-    List<Integer> bodyExtraLocals = new ArrayList<>();
+    List<byte[]> bodyExtraTypes = new ArrayList<>();
     List<byte[]> bodyCodes = new ArrayList<>();
+    List<DataSeg> dataSegs = new ArrayList<>();
+    boolean hasMem = false;
+    int memMin = 0, memMax = 16;
 
     try {
       while (p[0] < bytes.length) {
@@ -510,13 +552,26 @@ public class SvaConformance {
           int n = readUleb(bytes, p);
           for (int i = 0; i < n; i++) {
             if ((bytes[p[0]++] & 0xff) != 0x60) return new WasmResult(null, "invalid_wasm");
-            int pc = readUleb(bytes, p); p[0] += pc;
-            int rc = readUleb(bytes, p); p[0] += rc;
-            typeParamCounts.add(pc);
+            int pc = readUleb(bytes, p);
+            byte[] pts = Arrays.copyOfRange(bytes, p[0], p[0] + pc); p[0] += pc;
+            int rc = readUleb(bytes, p);
+            byte[] rts = Arrays.copyOfRange(bytes, p[0], p[0] + rc); p[0] += rc;
+            typeParams.add(pts);
+            typeResults.add(rts);
           }
         } else if (id == 3) {
           int n = readUleb(bytes, p);
           for (int i = 0; i < n; i++) funcTypeIdxs.add(readUleb(bytes, p));
+        } else if (id == 5) {
+          int n = readUleb(bytes, p);
+          if (n > 0) {
+            hasMem = true;
+            int flags = bytes[p[0]++] & 0xff;
+            memMin = readUleb(bytes, p);
+            memMax = flags == 1 ? Math.min(readUleb(bytes, p), 16) : 16;
+            if (memMin < 0 || memMin > 16) return new WasmResult(null, "invalid_wasm");
+            for (int i = 1; i < n; i++) { int f = bytes[p[0]++] & 0xff; readUleb(bytes, p); if (f == 1) readUleb(bytes, p); }
+          }
         } else if (id == 7) {
           int n = readUleb(bytes, p);
           for (int i = 0; i < n; i++) {
@@ -533,11 +588,29 @@ public class SvaConformance {
             int bend = p[0] + bsize;
             if (bsize < 0 || bend > end) return new WasmResult(null, "invalid_wasm");
             int ldecl = readUleb(bytes, p);
-            int extra = 0;
-            for (int j = 0; j < ldecl; j++) { extra += readUleb(bytes, p); p[0]++; }
-            bodyExtraLocals.add(extra);
+            List<Byte> ets = new ArrayList<>();
+            for (int j = 0; j < ldecl; j++) {
+              int cnt = readUleb(bytes, p);
+              byte t = bytes[p[0]++];
+              for (int k = 0; k < cnt; k++) ets.add(t);
+            }
+            byte[] etArr = new byte[ets.size()];
+            for (int j = 0; j < ets.size(); j++) etArr[j] = ets.get(j);
+            bodyExtraTypes.add(etArr);
             bodyCodes.add(Arrays.copyOfRange(bytes, p[0], bend));
             p[0] = bend;
+          }
+        } else if (id == 11) {
+          int n = readUleb(bytes, p);
+          for (int i = 0; i < n; i++) {
+            int mode = readUleb(bytes, p);
+            if (mode != 0 || (bytes[p[0]++] & 0xff) != 0x41) return new WasmResult(null, "invalid_wasm");
+            int offset = readSleb(bytes, p);
+            if ((bytes[p[0]++] & 0xff) != 0x0b) return new WasmResult(null, "invalid_wasm");
+            int len = readUleb(bytes, p);
+            if (len < 0 || p[0] + len > end) return new WasmResult(null, "invalid_wasm");
+            dataSegs.add(new DataSeg(offset, Arrays.copyOfRange(bytes, p[0], p[0] + len)));
+            p[0] += len;
           }
         } else {
           p[0] = end;
@@ -548,13 +621,27 @@ public class SvaConformance {
       return new WasmResult(null, "invalid_wasm");
     }
 
+    byte[] mem = hasMem ? new byte[memMin * 65536] : null;
+    for (DataSeg seg : dataSegs) {
+      if (mem == null || seg.offset() < 0 || (long) seg.offset() + seg.data().length > mem.length) return new WasmResult(null, "mem_oob");
+      System.arraycopy(seg.data(), 0, mem, seg.offset(), seg.data().length);
+    }
+
     Integer fnIdx = exports.get("main");
     if (fnIdx == null || fnIdx < 0 || fnIdx >= bodyCodes.size()) return new WasmResult(null, "invalid_wasm");
-    int pc = typeParamCounts.get(funcTypeIdxs.get(fnIdx));
-    int extra = bodyExtraLocals.get(fnIdx);
+    byte[] pts = typeParams.get(funcTypeIdxs.get(fnIdx));
+    byte[] rts = typeResults.get(funcTypeIdxs.get(fnIdx));
+    byte[] ets = bodyExtraTypes.get(fnIdx);
     byte[] code = bodyCodes.get(fnIdx);
-    int[] locals = new int[pc + extra];
-    for (int i = 0; i < pc && i < args.length; i++) locals[i] = args[i];
+    byte[] localTypes = new byte[pts.length + ets.length];
+    System.arraycopy(pts, 0, localTypes, 0, pts.length);
+    System.arraycopy(ets, 0, localTypes, pts.length, ets.length);
+    // Raw 64-bit slots: i32 stored as int in lower 32 bits, f64 stored as Double.doubleToRawLongBits
+    long[] locals = new long[localTypes.length];
+    for (int i = 0; i < pts.length && i < args.length; i++) {
+      locals[i] = (pts[i] & 0xff) == 0x7c ? Double.doubleToRawLongBits(args[i]) : ((int) args[i]);
+    }
+    boolean resIsF64 = rts.length > 0 && (rts[0] & 0xff) == 0x7c;
 
     // Pre-scan control blocks (block/loop -> matching end pc)
     Map<Integer, Integer> matchEnd = new HashMap<>();
@@ -565,10 +652,17 @@ public class SvaConformance {
       else if (op == 0x0b) { if (!ctrl.isEmpty()) matchEnd.put(ctrl.pop(), ip); }
       else if (op == 0x0c || op == 0x0d || op == 0x20 || op == 0x21 || op == 0x22 || op == 0x41) {
         while (++ip < code.length && (code[ip] & 0x80) != 0) {}
+      } else if (op == 0x44) {
+        ip += 8;
+      } else if (op == 0x28 || op == 0x2b || op == 0x36 || op == 0x39) {
+        while (++ip < code.length && (code[ip] & 0x80) != 0) {}
+        while (++ip < code.length && (code[ip] & 0x80) != 0) {}
+      } else if (op == 0x3f || op == 0x40) {
+        ip += 1;
       }
     }
 
-    int[] stack = new int[256];
+    long[] stack = new long[256];
     int sp = 0;
     List<int[]> labels = new ArrayList<>(); // [isLoop(0/1), targetIp]
     int[] ipRef = new int[] { 0 };
@@ -584,7 +678,7 @@ public class SvaConformance {
         case 0x03 -> { int start = ipRef[0] - 1; ipRef[0]++; labels.add(new int[] { 1, start + 2 }); }
         case 0x0b -> {
           if (!labels.isEmpty()) labels.remove(labels.size() - 1);
-          else return new WasmResult(sp > 0 ? stack[sp - 1] : 0, null);
+          else return finishWasm(sp > 0 ? stack[sp - 1] : 0L, resIsF64);
         }
         case 0x0c -> {
           int depth = readUleb(code, ipRef);
@@ -596,7 +690,7 @@ public class SvaConformance {
         }
         case 0x0d -> {
           int depth = readUleb(code, ipRef);
-          if (stack[--sp] != 0) {
+          if (((int) stack[--sp]) != 0) {
             int idx = labels.size() - 1 - depth;
             int[] lbl = labels.get(idx);
             int keep = lbl[0] == 1 ? idx + 1 : idx;
@@ -604,35 +698,121 @@ public class SvaConformance {
             ipRef[0] = lbl[1];
           }
         }
-        case 0x0f -> { return new WasmResult(sp > 0 ? stack[sp - 1] : 0, null); }
+        case 0x0f -> { return finishWasm(sp > 0 ? stack[sp - 1] : 0L, resIsF64); }
+        case 0x1a -> sp--;
         case 0x20 -> stack[sp++] = locals[readUleb(code, ipRef)];
         case 0x21 -> locals[readUleb(code, ipRef)] = stack[--sp];
         case 0x22 -> locals[readUleb(code, ipRef)] = stack[sp - 1];
+        case 0x28 -> { // i32.load
+          readUleb(code, ipRef); // align
+          long off = Integer.toUnsignedLong(readUleb(code, ipRef));
+          long eff = Integer.toUnsignedLong((int) stack[--sp]) + off;
+          if (mem == null || eff + 4L > mem.length) return new WasmResult(null, "mem_oob");
+          stack[sp++] = readInt32LE(mem, (int) eff);
+        }
+        case 0x2b -> { // f64.load
+          readUleb(code, ipRef);
+          long off = Integer.toUnsignedLong(readUleb(code, ipRef));
+          long eff = Integer.toUnsignedLong((int) stack[--sp]) + off;
+          if (mem == null || eff + 8L > mem.length) return new WasmResult(null, "mem_oob");
+          stack[sp++] = readInt64LE(mem, (int) eff);
+        }
+        case 0x36 -> { // i32.store
+          readUleb(code, ipRef);
+          long off = Integer.toUnsignedLong(readUleb(code, ipRef));
+          int val = (int) stack[--sp];
+          long eff = Integer.toUnsignedLong((int) stack[--sp]) + off;
+          if (mem == null || eff + 4L > mem.length) return new WasmResult(null, "mem_oob");
+          writeInt32LE(mem, (int) eff, val);
+        }
+        case 0x39 -> { // f64.store
+          readUleb(code, ipRef);
+          long off = Integer.toUnsignedLong(readUleb(code, ipRef));
+          long bits = stack[--sp];
+          long eff = Integer.toUnsignedLong((int) stack[--sp]) + off;
+          if (mem == null || eff + 8L > mem.length) return new WasmResult(null, "mem_oob");
+          writeInt64LE(mem, (int) eff, bits);
+        }
+        case 0x3f -> { // memory.size
+          ipRef[0]++;
+          stack[sp++] = mem != null ? (mem.length >>> 16) : 0;
+        }
+        case 0x40 -> { // memory.grow
+          ipRef[0]++;
+          long delta = Integer.toUnsignedLong((int) stack[--sp]);
+          int curPages = mem != null ? (mem.length >>> 16) : 0;
+          if (mem == null || curPages + delta > memMax) {
+            stack[sp++] = -1;
+          } else {
+            byte[] next = new byte[(int) ((curPages + delta) * 65536L)];
+            System.arraycopy(mem, 0, next, 0, mem.length);
+            mem = next;
+            stack[sp++] = curPages;
+          }
+        }
         case 0x41 -> stack[sp++] = readSleb(code, ipRef);
-        case 0x45 -> stack[sp - 1] = stack[sp - 1] == 0 ? 1 : 0;
-        case 0x46 -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a == b) ? 1 : 0; }
-        case 0x47 -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a != b) ? 1 : 0; }
-        case 0x48 -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a < b) ? 1 : 0; }
-        case 0x4a -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a > b) ? 1 : 0; }
-        case 0x4c -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a <= b) ? 1 : 0; }
-        case 0x4e -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = (a >= b) ? 1 : 0; }
-        case 0x6a -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = a + b; }
-        case 0x6b -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = a - b; }
-        case 0x6c -> { int b = stack[--sp], a = stack[--sp]; stack[sp++] = a * b; }
+        case 0x44 -> { // f64.const
+          stack[sp++] = readInt64LE(code, ipRef[0]);
+          ipRef[0] += 8;
+        }
+        case 0x45 -> stack[sp - 1] = ((int) stack[sp - 1]) == 0 ? 1 : 0;
+        case 0x46 -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a == b) ? 1 : 0; }
+        case 0x47 -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a != b) ? 1 : 0; }
+        case 0x48 -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a < b) ? 1 : 0; }
+        case 0x4a -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a > b) ? 1 : 0; }
+        case 0x4c -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a <= b) ? 1 : 0; }
+        case 0x4e -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = (a >= b) ? 1 : 0; }
+        case 0x61 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a == b) ? 1 : 0; }
+        case 0x62 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a != b) ? 1 : 0; }
+        case 0x63 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a < b) ? 1 : 0; }
+        case 0x64 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a > b) ? 1 : 0; }
+        case 0x65 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a <= b) ? 1 : 0; }
+        case 0x66 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = (a >= b) ? 1 : 0; }
+        case 0x6a -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = a + b; }
+        case 0x6b -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = a - b; }
+        case 0x6c -> { int b = (int) stack[--sp], a = (int) stack[--sp]; stack[sp++] = a * b; }
         case 0x6d -> {
-          int b = stack[--sp], a = stack[--sp];
+          int b = (int) stack[--sp], a = (int) stack[--sp];
           if (b == 0 || (a == Integer.MIN_VALUE && b == -1)) return new WasmResult(null, "div_by_zero");
           stack[sp++] = a / b;
         }
         case 0x6f -> {
-          int b = stack[--sp], a = stack[--sp];
+          int b = (int) stack[--sp], a = (int) stack[--sp];
           if (b == 0) return new WasmResult(null, "div_by_zero");
           stack[sp++] = a % b;
+        }
+        case 0x99 -> stack[sp - 1] = Double.doubleToRawLongBits(Math.abs(Double.longBitsToDouble(stack[sp - 1])));
+        case 0x9a -> stack[sp - 1] = Double.doubleToRawLongBits(-Double.longBitsToDouble(stack[sp - 1]));
+        case 0x9b -> stack[sp - 1] = Double.doubleToRawLongBits(Math.ceil(Double.longBitsToDouble(stack[sp - 1])));
+        case 0x9c -> stack[sp - 1] = Double.doubleToRawLongBits(Math.floor(Double.longBitsToDouble(stack[sp - 1])));
+        case 0x9d -> {
+          double v = Double.longBitsToDouble(stack[sp - 1]);
+          stack[sp - 1] = Double.doubleToRawLongBits(v < 0 ? Math.ceil(v) : Math.floor(v));
+        }
+        case 0x9f -> stack[sp - 1] = Double.doubleToRawLongBits(Math.sqrt(Double.longBitsToDouble(stack[sp - 1])));
+        case 0xa0 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = Double.doubleToRawLongBits(a + b); }
+        case 0xa1 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = Double.doubleToRawLongBits(a - b); }
+        case 0xa2 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = Double.doubleToRawLongBits(a * b); }
+        case 0xa3 -> { double b = Double.longBitsToDouble(stack[--sp]), a = Double.longBitsToDouble(stack[--sp]); stack[sp++] = Double.doubleToRawLongBits(a / b); }
+        case 0xaa -> { // i32.trunc_f64_s
+          double v = Double.longBitsToDouble(stack[--sp]);
+          if (!Double.isFinite(v)) return new WasmResult(null, "invalid_conversion");
+          double t = v < 0 ? Math.ceil(v) : Math.floor(v);
+          if (t < -2147483648.0 || t > 2147483647.0) return new WasmResult(null, "invalid_conversion");
+          stack[sp++] = (int) t;
+        }
+        case 0xb7 -> { // f64.convert_i32_s
+          int v = (int) stack[--sp];
+          stack[sp++] = Double.doubleToRawLongBits((double) v);
         }
         default -> { return new WasmResult(null, "unsupported_op"); }
       }
     }
-    return new WasmResult(sp > 0 ? stack[sp - 1] : 0, null);
+    return finishWasm(sp > 0 ? stack[sp - 1] : 0L, resIsF64);
+  }
+
+  private static WasmResult finishWasm(long raw, boolean resIsF64) {
+    return new WasmResult(resIsF64 ? Double.longBitsToDouble(raw) : (double) ((int) raw), null);
   }
 
   private static int readUleb(byte[] b, int[] p) {

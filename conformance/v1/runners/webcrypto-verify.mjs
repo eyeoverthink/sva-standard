@@ -222,16 +222,20 @@ async function verifyEma1({ attestation: a, outboundPayload, hmacKeyHex, origina
   return true;
 }
 
-// Browser-native fuel-metered WebAssembly Core 1.0 i32 interpreter (zero Node imports, paired with W3C WebAssembly.validate/instantiate).
+// Browser-native fuel-metered WebAssembly Core 1.0 interpreter (i32, f64, linear memory, active data segments, control flow; zero Node imports)
+// paired with W3C WebAssembly.validate/instantiate.
 function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
   let pos = 0;
   const u8 = () => { if (pos >= bytes.length) throw new Error('eof'); return bytes[pos++]; };
   const uleb = () => { let res = 0, shift = 0; while (true) { const b = u8(); res |= (b & 0x7f) << shift; if ((b & 0x80) === 0) return res >>> 0; shift += 7; if (shift > 35) throw new Error('uleb'); } };
+  const sleb = () => { let res = 0, shift = 0, b; do { b = u8(); res |= (b & 0x7f) << shift; shift += 7; if (shift > 35) throw new Error('sleb'); } while (b & 0x80); if (shift < 32 && (b & 0x40)) res |= (~0 << shift); return res | 0; };
   if (bytes.length < 8) throw new Error('short');
   const magic = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
   for (let i = 0; i < 8; i++) if (u8() !== magic[i]) throw new Error('magic');
   const types = [], funcs = [], exports = new Map(), bodies = [];
   const dec = new TextDecoder();
+  let memMin = 0, memMax = 16, hasMem = false;
+  const dataSegs = [];
   while (pos < bytes.length) {
     const id = u8(), size = uleb(), end = pos + size;
     if (end > bytes.length) throw new Error('section_oob');
@@ -239,13 +243,25 @@ function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
       const n = uleb();
       for (let i = 0; i < n; i++) {
         if (u8() !== 0x60) throw new Error('functype');
-        const pc = uleb(); for (let j = 0; j < pc; j++) u8();
-        const rc = uleb(); for (let j = 0; j < rc; j++) u8();
-        types.push({ pc, rc });
+        const pc = uleb(), paramTypes = [];
+        for (let j = 0; j < pc; j++) paramTypes.push(u8());
+        const rc = uleb(), resTypes = [];
+        for (let j = 0; j < rc; j++) resTypes.push(u8());
+        types.push({ paramTypes, resTypes });
       }
     } else if (id === 3) {
       const n = uleb();
       for (let i = 0; i < n; i++) funcs.push(uleb());
+    } else if (id === 5) {
+      const n = uleb();
+      if (n > 0) {
+        hasMem = true;
+        const flags = u8();
+        memMin = uleb();
+        memMax = flags === 1 ? Math.min(uleb(), 16) : 16;
+        if (memMin > 16) throw new Error('mem_limit');
+        for (let i = 1; i < n; i++) { const f = u8(); uleb(); if (f === 1) uleb(); }
+      }
     } else if (id === 7) {
       const n = uleb();
       for (let i = 0; i < n; i++) {
@@ -260,20 +276,40 @@ function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
         const bsize = uleb(), bend = pos + bsize;
         if (bend > end) throw new Error('body_oob');
         const ldecl = uleb();
-        let extraLocals = 0;
-        for (let j = 0; j < ldecl; j++) { extraLocals += uleb(); u8(); }
-        bodies.push({ extraLocals, code: bytes.subarray(pos, bend) });
+        const extraTypes = [];
+        for (let j = 0; j < ldecl; j++) { const cnt = uleb(), t = u8(); for (let k = 0; k < cnt; k++) extraTypes.push(t); }
+        bodies.push({ extraTypes, code: bytes.subarray(pos, bend) });
         pos = bend;
+      }
+    } else if (id === 11) {
+      const n = uleb();
+      for (let i = 0; i < n; i++) {
+        const mode = uleb();
+        if (mode !== 0 || u8() !== 0x41) throw new Error('data_init');
+        const offset = sleb();
+        if (u8() !== 0x0b) throw new Error('data_end');
+        const len = uleb();
+        dataSegs.push({ offset, seg: bytes.subarray(pos, pos + len) });
+        pos += len;
       }
     } else { pos = end; }
     if (pos !== end) throw new Error('section_len');
   }
+  let mem = hasMem ? new Uint8Array(memMin * 65536) : null;
+  let memView = mem ? new DataView(mem.buffer) : null;
+  for (const { offset, seg } of dataSegs) {
+    if (!mem || offset < 0 || offset + seg.length > mem.length) return { trap: 'mem_oob' };
+    mem.set(seg, offset);
+  }
   const fnIdx = exports.get('main');
   if (fnIdx === undefined || !bodies[fnIdx]) throw new Error('no_main');
-  const { pc } = types[funcs[fnIdx]];
-  const { extraLocals, code } = bodies[fnIdx];
-  const locals = new Int32Array(pc + extraLocals);
-  for (let i = 0; i < pc; i++) locals[i] = (args[i] ?? 0) | 0;
+  const { paramTypes, resTypes } = types[funcs[fnIdx]];
+  const { extraTypes, code } = bodies[fnIdx];
+  const localTypes = [...paramTypes, ...extraTypes];
+  const locals = localTypes.map((t, i) => {
+    const raw = i < paramTypes.length ? (args[i] ?? 0) : 0;
+    return t === 0x7c ? Number(raw) : (raw | 0);
+  });
 
   const matchEnd = new Map(), ctrlStack = [];
   for (let ip = 0; ip < code.length; ip++) {
@@ -281,11 +317,16 @@ function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
     if (op === 0x02 || op === 0x03) { ctrlStack.push(ip); ip++; }
     else if (op === 0x0b) { if (ctrlStack.length) matchEnd.set(ctrlStack.pop(), ip); }
     else if (op === 0x0c || op === 0x0d || op === 0x20 || op === 0x21 || op === 0x22 || op === 0x41) { while (code[++ip] & 0x80) {} }
+    else if (op === 0x44) { ip += 8; }
+    else if (op === 0x28 || op === 0x2b || op === 0x36 || op === 0x39) { while (code[++ip] & 0x80) {} while (code[++ip] & 0x80) {} }
+    else if (op === 0x3f || op === 0x40) { ip += 1; }
   }
   const stack = [], labels = [];
   let fuel = fuelLimit, ip = 0;
+  const codeView = new DataView(code.buffer, code.byteOffset, code.byteLength);
   const readUlebAt = () => { let r = 0, sh = 0; while (true) { const b = code[ip++]; r |= (b & 0x7f) << sh; if ((b & 0x80) === 0) return r >>> 0; sh += 7; } };
   const readSlebAt = () => { let r = 0, sh = 0, b; do { b = code[ip++]; r |= (b & 0x7f) << sh; sh += 7; } while (b & 0x80); if (sh < 32 && (b & 0x40)) r |= (~0 << sh); return r | 0; };
+  const readMemArg = () => { readUlebAt(); return readUlebAt(); };
   while (ip < code.length) {
     if (--fuel < 0) return { trap: 'fuel_exhausted' };
     const op = code[ip++];
@@ -298,10 +339,29 @@ function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
       case 0x0c: { const depth = readUlebAt(); const idx = labels.length - 1 - depth; const lbl = labels[idx]; labels.length = lbl.loop ? idx + 1 : idx; ip = lbl.target; break; }
       case 0x0d: { const depth = readUlebAt(); if (stack.pop() !== 0) { const idx = labels.length - 1 - depth; const lbl = labels[idx]; labels.length = lbl.loop ? idx + 1 : idx; ip = lbl.target; } break; }
       case 0x0f: return { value: stack.at(-1) ?? 0 };
+      case 0x1a: stack.pop(); break;
       case 0x20: stack.push(locals[readUlebAt()]); break;
-      case 0x21: locals[readUlebAt()] = stack.pop() | 0; break;
-      case 0x22: { const i = readUlebAt(); locals[i] = stack.at(-1) | 0; break; }
+      case 0x21: { const i = readUlebAt(); const v = stack.pop(); locals[i] = localTypes[i] === 0x7c ? Number(v) : (v | 0); break; }
+      case 0x22: { const i = readUlebAt(); const v = stack.at(-1); locals[i] = localTypes[i] === 0x7c ? Number(v) : (v | 0); break; }
+      case 0x28: { const off = readMemArg(); const eff = (stack.pop() >>> 0) + off; if (!mem || eff + 4 > mem.length) return { trap: 'mem_oob' }; stack.push(memView.getInt32(eff, true)); break; }
+      case 0x2b: { const off = readMemArg(); const eff = (stack.pop() >>> 0) + off; if (!mem || eff + 8 > mem.length) return { trap: 'mem_oob' }; stack.push(memView.getFloat64(eff, true)); break; }
+      case 0x36: { const off = readMemArg(); const val = stack.pop() | 0; const eff = (stack.pop() >>> 0) + off; if (!mem || eff + 4 > mem.length) return { trap: 'mem_oob' }; memView.setInt32(eff, val, true); break; }
+      case 0x39: { const off = readMemArg(); const val = Number(stack.pop()); const eff = (stack.pop() >>> 0) + off; if (!mem || eff + 8 > mem.length) return { trap: 'mem_oob' }; memView.setFloat64(eff, val, true); break; }
+      case 0x3f: { ip++; stack.push(mem ? (mem.length >>> 16) : 0); break; }
+      case 0x40: {
+        ip++;
+        const delta = stack.pop() >>> 0;
+        const curPages = mem ? (mem.length >>> 16) : 0;
+        if (!mem || curPages + delta > memMax) { stack.push(-1); break; }
+        const next = new Uint8Array((curPages + delta) * 65536);
+        next.set(mem);
+        mem = next;
+        memView = new DataView(mem.buffer);
+        stack.push(curPages);
+        break;
+      }
       case 0x41: stack.push(readSlebAt()); break;
+      case 0x44: { stack.push(codeView.getFloat64(ip, true)); ip += 8; break; }
       case 0x45: stack.push(stack.pop() === 0 ? 1 : 0); break;
       case 0x46: { const b = stack.pop(), a = stack.pop(); stack.push(a === b ? 1 : 0); break; }
       case 0x47: { const b = stack.pop(), a = stack.pop(); stack.push(a !== b ? 1 : 0); break; }
@@ -309,15 +369,40 @@ function runWasmFuelMetered(bytes, args, fuelLimit = 1000) {
       case 0x4a: { const b = stack.pop(), a = stack.pop(); stack.push(a > b ? 1 : 0); break; }
       case 0x4c: { const b = stack.pop(), a = stack.pop(); stack.push(a <= b ? 1 : 0); break; }
       case 0x4e: { const b = stack.pop(), a = stack.pop(); stack.push(a >= b ? 1 : 0); break; }
+      case 0x61: { const b = stack.pop(), a = stack.pop(); stack.push(a === b ? 1 : 0); break; }
+      case 0x62: { const b = stack.pop(), a = stack.pop(); stack.push(a !== b ? 1 : 0); break; }
+      case 0x63: { const b = stack.pop(), a = stack.pop(); stack.push(a < b ? 1 : 0); break; }
+      case 0x64: { const b = stack.pop(), a = stack.pop(); stack.push(a > b ? 1 : 0); break; }
+      case 0x65: { const b = stack.pop(), a = stack.pop(); stack.push(a <= b ? 1 : 0); break; }
+      case 0x66: { const b = stack.pop(), a = stack.pop(); stack.push(a >= b ? 1 : 0); break; }
       case 0x6a: { const b = stack.pop(), a = stack.pop(); stack.push((a + b) | 0); break; }
       case 0x6b: { const b = stack.pop(), a = stack.pop(); stack.push((a - b) | 0); break; }
       case 0x6c: { const b = stack.pop(), a = stack.pop(); stack.push(Math.imul(a, b)); break; }
       case 0x6d: { const b = stack.pop(), a = stack.pop(); if (b === 0 || (a === -2147483648 && b === -1)) return { trap: 'div_by_zero' }; stack.push((a / b) | 0); break; }
       case 0x6f: { const b = stack.pop(), a = stack.pop(); if (b === 0) return { trap: 'div_by_zero' }; stack.push((a % b) | 0); break; }
+      case 0x99: stack.push(Math.abs(stack.pop())); break;
+      case 0x9a: stack.push(-stack.pop()); break;
+      case 0x9b: stack.push(Math.ceil(stack.pop())); break;
+      case 0x9c: stack.push(Math.floor(stack.pop())); break;
+      case 0x9d: stack.push(Math.trunc(stack.pop())); break;
+      case 0x9f: stack.push(Math.sqrt(stack.pop())); break;
+      case 0xa0: { const b = stack.pop(), a = stack.pop(); stack.push(a + b); break; }
+      case 0xa1: { const b = stack.pop(), a = stack.pop(); stack.push(a - b); break; }
+      case 0xa2: { const b = stack.pop(), a = stack.pop(); stack.push(a * b); break; }
+      case 0xa3: { const b = stack.pop(), a = stack.pop(); stack.push(a / b); break; }
+      case 0xaa: {
+        const v = stack.pop();
+        if (!Number.isFinite(v)) return { trap: 'invalid_conversion' };
+        const t = Math.trunc(v);
+        if (t < -2147483648 || t > 2147483647) return { trap: 'invalid_conversion' };
+        stack.push(t | 0);
+        break;
+      }
+      case 0xb7: stack.push(Number(stack.pop() | 0)); break;
       default: return { trap: `unsupported_op_${op}` };
     }
   }
-  return { value: stack.at(-1) ?? 0 };
+  return { value: resTypes[0] === 0x7c ? Number(stack.at(-1) ?? 0) : ((stack.at(-1) ?? 0) | 0) };
 }
 
 async function verifyWasmExec({ capsule, revocation = null, args = null, expectOutput = null, expectTrap = null, fuelLimit = 1000 }) {

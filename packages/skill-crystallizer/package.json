@@ -1,6 +1,6 @@
 {
   "name": "@eyeoverthink/skill-crystallizer",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Zero-dependency, zero-LLM skill binder induction with leave-one-out verification and positional wording gates for Node.js and browsers",
   "license": "Apache-2.0",
@@ -10,6 +10,32 @@
   },
   "bin": {
     "skill-crystallizer": "./bin/skill-crystallizer.js"
+  },
+  "files": [
+    "binder-induction.js",
+    "bin/skill-crystallizer.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "skill-induction",
+    "deterministic-routing",
+    "ai-agents",
+    "leave-one-out",
+    "zero-llm",
+    "zero-dependency"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eyeoverthink/sva-standard.git",
+    "directory": "packages/skill-crystallizer"
+  },
+  "homepage": "https://eyeoverthink.github.io/sva-standard/skill-lab.html",
+  "bugs": {
+    "url": "https://github.com/eyeoverthink/sva-standard/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.0.0"

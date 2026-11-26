@@ -1,0 +1,67 @@
+{
+  "specVersion": "sva-conformance/1.2",
+  "date": "2026-11-26",
+  "repository": "https://github.com/eyeoverthink/sva-standard",
+  "livePlaygrounds": {
+    "url": "https://eyeoverthink.github.io/sva-standard/",
+    "verifiedInBrowser": true,
+    "consoleErrors": 0,
+    "failedNetworkRequests": 0,
+    "externalCdnRequests": 0,
+    "labs": [
+      "index.html",
+      "receipt-lab.html (6/6 tamper attacks caught)",
+      "membrane-lab.html (Clinic/DevOps/Zero-Width presets + digit-squeezed SSN egress block)",
+      "skill-lab.html (3/3 LOO CV + 0-call routing + 3/3 near-miss traps refused)"
+    ]
+  },
+  "goldenSuite": {
+    "totalVectors": 76,
+    "breakdown": {
+      "jcs": 10,
+      "merkle": 10,
+      "aer1": 15,
+      "vsc1": 13,
+      "ema1": 14,
+      "wasm_exec": 14
+    }
+  },
+  "triRuntimeResults": [
+    {
+      "runtime": "node:v24.11.1 (node:crypto + V8 WebAssembly)",
+      "dependencies": 0,
+      "passed": 76,
+      "total": 76,
+      "failed": 0,
+      "durationMs": 24.15
+    },
+    {
+      "runtime": "W3C WebCrypto (globalThis.crypto.subtle + WebAssembly, zero node:crypto)",
+      "dependencies": 0,
+      "passed": 76,
+      "total": 76,
+      "failed": 0,
+      "durationMs": 38.41
+    },
+    {
+      "runtime": "java:25.0.1 (single-file pure JDK + fuel-metered i32/f64/memory pure-Java WASM VM)",
+      "dependencies": 0,
+      "passed": 76,
+      "total": 76,
+      "failed": 0,
+      "durationMs": 268.49
+    }
+  ],
+  "immuneMeshDemo": {
+    "command": "node demos/immune-mesh/run-demo.mjs",
+    "agencies": 4,
+    "gpuCalls": 0,
+    "totalMs": 60.59,
+    "allPassed": true
+  },
+  "packages": [
+    { "name": "@eyeoverthink/ai-receipt", "version": "1.2.0", "packedBytes": 9000, "files": 5, "dependencies": 0 },
+    { "name": "@eyeoverthink/privacy-membrane", "version": "1.2.0", "packedBytes": 10400, "files": 7, "dependencies": 0 },
+    { "name": "@eyeoverthink/skill-crystallizer", "version": "1.2.0", "packedBytes": 10500, "files": 5, "dependencies": 0 }
+  ]
+}

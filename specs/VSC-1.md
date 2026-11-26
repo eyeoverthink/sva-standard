@@ -37,7 +37,7 @@ No custom DNA/ACGT wrappers appear on the wire. Only plain JCS-canonicalizable J
 1. `spec === "vsc/1"`, `runtime` is strictly `"wasm-core-1"` or `"js-pure-es2022"`, and `capabilities` is an empty array `[]` (pure functions only).
 2. `name` matches `/^[a-z][a-z0-9_-]{1,63}$/` (blocks prototype-pollution names and path traversal).
 3. Enforce strict encoding pairing: `runtime === "js-pure-es2022"` MUST use `encoding === "utf8"`; `runtime === "wasm-core-1"` MUST use `encoding === "base64"` (strict RFC 4648 base64, rejecting invalid characters). Decode `code`; `SHA256(codeBytes) === codeSha256`.
-4. If `runtime === "wasm-core-1"`, wire verification MUST check the 8-byte WebAssembly v1 magic + version header (`00 61 73 6d 01 00 00 00`); runtime admission MUST additionally execute full `WebAssembly.validate(codeBytes)` before invoking.
+4. If `runtime === "wasm-core-1"`, wire verification MUST check the 8-byte WebAssembly v1 magic + version header (`00 61 73 6d 01 00 00 00`); runtime admission MUST additionally execute full `WebAssembly.validate(codeBytes)` before invoking. Conforming SVA v1.2 runtimes execute capability-free WebAssembly Core 1.0 (`i32`, IEEE-754 `f64`, structured control flow, linear memory with active data segments & bounded `memory.grow`, and deterministic fuel metering) bit-for-bit identically across Node.js V8, W3C Browser WebAssembly, and Single-File Pure Java.
 5. `tests` MUST be a non-empty array.
 6. `signer` is 64 hex chars, `sig` is 128 hex chars (NEVER optional), and `Ed25519Verify(signer, UTF8(JCS(capsule without sig)), sig) === true`.
 7. Receivers MUST keep imported capsules on probation until locally re-verified on live tasks.

@@ -1,19 +1,21 @@
 {
   "name": "sva-standard",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
-  "description": "Sovereign Verified Agency (SVA) Open Standards: AER/1, VSC/1, EMA/1 — zero-dependency tri-runtime conformance (Node.js, W3C WebCrypto, single-file Java) & offline browser playgrounds",
+  "description": "Sovereign Verified Agency (SVA) Open Standards: AER/1, VSC/1, EMA/1 — zero-dependency tri-runtime conformance (Node.js, W3C WebCrypto, single-file Java WASM VM) & offline browser playgrounds",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/eyeoverthink/sva-standard.git"
   },
+  "homepage": "https://eyeoverthink.github.io/sva-standard/",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "conformance:node": "node conformance/v1/runners/node-verify.mjs",
     "conformance:webcrypto": "node conformance/v1/runners/webcrypto-verify.mjs",
     "conformance:java": "java conformance/v1/runners/SvaConformance.java conformance/v1/vectors.json",
     "conformance": "node conformance/v1/runners/node-verify.mjs && node conformance/v1/runners/webcrypto-verify.mjs && java conformance/v1/runners/SvaConformance.java conformance/v1/vectors.json",
+    "demo:immune": "node demos/immune-mesh/run-demo.mjs",
     "generate:vectors": "node conformance/v1/generate-vectors.mjs"
   },
   "engines": {

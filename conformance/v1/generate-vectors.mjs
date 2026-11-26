@@ -419,7 +419,7 @@ add('ema-04', 'ema1', 'Valid SEALED_EGRESS with phone number normalized safely a
   add('ema-14', 'ema1', 'Per-type withheld/tags mismatch (withheld EMAIL vs tag SSN) rejected', false, m);
 }
 
-// ==================== 6. PHASE 27: CROSS-RUNTIME FUEL-METERED WASM EXECUTION (8 vectors) ====================
+// ==================== 6. PHASE 27/28: CROSS-RUNTIME FUEL-METERED WASM EXECUTION (14 vectors) ====================
 function uleb(n) {
   const out = [];
   do { let b = n & 0x7f; n >>>= 7; if (n !== 0) b |= 0x80; out.push(b); } while (n !== 0);
@@ -437,15 +437,34 @@ function sleb(n) {
   }
   return out;
 }
+function f64Bytes(val) {
+  const buf = Buffer.alloc(8);
+  buf.writeDoubleLE(val, 0);
+  return [...buf];
+}
 function wasmSection(id, payload) { return [id, ...uleb(payload.length), ...payload]; }
-function encodeWasmI32Func({ paramCount, extraI32Locals = 0, ops }) {
-  const typeSec = wasmSection(1, [1, 0x60, ...uleb(paramCount), ...Array(paramCount).fill(0x7f), 1, 0x7f]);
+function encodeWasmFunc({ params = [], result = 0x7f, locals = [], memory = null, data = [], ops }) {
+  const typeSec = wasmSection(1, [1, 0x60, ...uleb(params.length), ...params, 1, result]);
   const funcSec = wasmSection(3, [1, 0]);
+  const memSec = memory
+    ? wasmSection(5, memory.max != null ? [1, 0x01, ...uleb(memory.min), ...uleb(memory.max)] : [1, 0x00, ...uleb(memory.min)])
+    : [];
   const exportSec = wasmSection(7, [1, 4, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0]); // export "main" -> func 0
-  const locals = extraI32Locals > 0 ? [1, ...uleb(extraI32Locals), 0x7f] : [0];
-  const body = [...locals, ...ops, 0x0b];
+  const localGroups = locals.length > 0 ? [locals.length, ...locals.flatMap(([count, t]) => [...uleb(count), t])] : [0];
+  const body = [...localGroups, ...ops, 0x0b];
   const codeSec = wasmSection(10, [1, ...uleb(body.length), ...body]);
-  return Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, ...typeSec, ...funcSec, ...exportSec, ...codeSec]);
+  const dataSec = data.length > 0
+    ? wasmSection(11, [data.length, ...data.flatMap(({ offset, bytes }) => [0x00, 0x41, ...sleb(offset), 0x0b, ...uleb(bytes.length), ...bytes])])
+    : [];
+  return Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, ...typeSec, ...funcSec, ...memSec, ...exportSec, ...codeSec, ...dataSec]);
+}
+function encodeWasmI32Func({ paramCount, extraI32Locals = 0, ops }) {
+  return encodeWasmFunc({
+    params: Array(paramCount).fill(0x7f),
+    result: 0x7f,
+    locals: extraI32Locals > 0 ? [[extraI32Locals, 0x7f]] : [],
+    ops,
+  });
 }
 function makeWasmCapsule(name, wasmBytes, tests = [{ input: [1], output: 1 }]) {
   const b64 = wasmBytes.toString('base64');
@@ -515,6 +534,97 @@ const REV_BUGGY = makeRevoke({
 const WASM_CORRUPT = Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x7f, 0xff]);
 const CAP_CORRUPT = makeWasmCapsule('wasm_corrupt_section', WASM_CORRUPT, [{ input: [1], output: 1 }]);
 
+// 7. SVA v1.2 f64 compound discount: price * (1.0 - d1) * (1.0 - d2)
+const WASM_F64_DISCOUNT = encodeWasmFunc({
+  params: [0x7c, 0x7c, 0x7c],
+  result: 0x7c,
+  ops: [
+    0x20, 0,
+    0x44, ...f64Bytes(1.0), 0x20, 1, 0xa1, 0xa2,
+    0x44, ...f64Bytes(1.0), 0x20, 2, 0xa1, 0xa2,
+  ],
+});
+const CAP_F64_DISCOUNT = makeWasmCapsule('wasm_f64_discount', WASM_F64_DISCOUNT, [{ input: [240.0, 0.25, 0.1], output: 162.0 }]);
+
+// 8. SVA v1.2 f64 harmonic mean (round-trip average speed): (2.0 * v1 * v2) / (v1 + v2)
+const WASM_F64_HARMONIC = encodeWasmFunc({
+  params: [0x7c, 0x7c],
+  result: 0x7c,
+  ops: [
+    0x44, ...f64Bytes(2.0), 0x20, 0, 0xa2, 0x20, 1, 0xa2,
+    0x20, 0, 0x20, 1, 0xa0,
+    0xa3,
+  ],
+});
+const CAP_F64_HARMONIC = makeWasmCapsule('wasm_f64_harmonic_mean', WASM_F64_HARMONIC, [{ input: [60.0, 40.0], output: 48.0 }]);
+
+// 9. SVA v1.2 linear memory + active data segment + i32.load/i32.store
+const DATA_INTS = Buffer.alloc(16);
+DATA_INTS.writeInt32LE(10, 0);
+DATA_INTS.writeInt32LE(20, 4);
+DATA_INTS.writeInt32LE(30, 8);
+DATA_INTS.writeInt32LE(40, 12);
+const WASM_MEM_SUM = encodeWasmFunc({
+  params: [0x7f], // count n
+  result: 0x7f,
+  locals: [[2, 0x7f]], // local 1 = acc, local 2 = i
+  memory: { min: 1, max: 2 },
+  data: [{ offset: 0, bytes: [...DATA_INTS] }],
+  ops: [
+    0x41, ...sleb(0), 0x21, 1,
+    0x41, ...sleb(0), 0x21, 2,
+    0x02, 0x40,
+      0x03, 0x40,
+        0x20, 2, 0x20, 0, 0x4e, 0x0d, 1, // if i >= n: br 1
+        0x20, 1,
+        0x20, 2, 0x41, ...sleb(4), 0x6c, 0x28, 0x02, 0x00, // i32.load align=2 offset=0 at i*4
+        0x6a, 0x21, 1,
+        0x20, 2, 0x41, ...sleb(1), 0x6a, 0x21, 2,
+        0x0c, 0,
+      0x0b,
+    0x0b,
+    // Store acc at offset 64, reload and return
+    0x41, ...sleb(64), 0x20, 1, 0x36, 0x02, 0x00,
+    0x41, ...sleb(64), 0x28, 0x02, 0x00,
+  ],
+});
+const CAP_MEM_SUM = makeWasmCapsule('wasm_mem_sum', WASM_MEM_SUM, [{ input: [4], output: 100 }]);
+
+// 10. SVA v1.2 linear memory f64.store/f64.load + memory.grow + memory.size + f64.convert_i32_s
+const WASM_MEM_GROW_F64 = encodeWasmFunc({
+  params: [0x7c], // base f64
+  result: 0x7c,
+  memory: { min: 1, max: 4 },
+  ops: [
+    // store param 0 at offset 0
+    0x41, ...sleb(0), 0x20, 0, 0x39, 0x03, 0x00,
+    // grow memory by 1 page (returns old pages = 1, discard via local? No, convert and add!)
+    0x41, ...sleb(1), 0x40, 0x00, 0xb7, // f64(oldPages = 1.0)
+    0x3f, 0x00, 0xb7, // f64(newPages = 2.0)
+    0xa0, // 3.0
+    0x41, ...sleb(0), 0x2b, 0x03, 0x00, // reload f64 param
+    0xa0, // 3.0 + param
+  ],
+});
+const CAP_MEM_GROW_F64 = makeWasmCapsule('wasm_mem_grow_f64', WASM_MEM_GROW_F64, [{ input: [0.5], output: 3.5 }]);
+
+// 11. SVA v1.2 out-of-bounds linear memory read traps deterministically
+const WASM_MEM_OOB = encodeWasmFunc({
+  params: [0x7f], // addr
+  result: 0x7f,
+  memory: { min: 1, max: 1 },
+  ops: [0x20, 0, 0x28, 0x02, 0x00],
+});
+const CAP_MEM_OOB = makeWasmCapsule('wasm_mem_oob', WASM_MEM_OOB, [{ input: [0], output: 0 }]);
+
+// 12. SVA v1.2 f64 NaN/overflow -> i32.trunc_f64_s traps deterministically
+const WASM_TRUNC_TRAP = encodeWasmFunc({
+  params: [0x7c, 0x7c],
+  result: 0x7f,
+  ops: [0x20, 0, 0x20, 1, 0xa3, 0xaa], // (a / b) -> i32.trunc_f64_s
+});
+const CAP_TRUNC_TRAP = makeWasmCapsule('wasm_f64_trunc_trap', WASM_TRUNC_TRAP, [{ input: [10.0, 2.0], output: 5 }]);
+
 add('wasm-01', 'wasm_exec', 'Cross-runtime WASM discount_cents(10000, 20, 10) == 7200 (V8 == WebCrypto == Java)', true, {
   capsule: CAP_DISCOUNT, args: [10000, 20, 10], expectOutput: 7200, fuelLimit: 1000,
 });
@@ -539,9 +649,27 @@ add('wasm-07', 'wasm_exec', 'End-to-end zero-rumor vsc-revoke/1 locally reproduc
 add('wasm-08', 'wasm_exec', 'Corrupt WASM section bytes rejected by full structural validation despite valid 8-byte header', false, {
   capsule: CAP_CORRUPT, args: [1], expectOutput: 1, fuelLimit: 1000,
 });
+add('wasm-09', 'wasm_exec', 'SVA v1.2 f64 compound discount(240.0, 0.25, 0.1) == 162.0 bit-identical across V8, WebCrypto, Java', true, {
+  capsule: CAP_F64_DISCOUNT, args: [240.0, 0.25, 0.1], expectOutput: 162.0, fuelLimit: 1000,
+});
+add('wasm-10', 'wasm_exec', 'SVA v1.2 f64 harmonic mean(60.0, 40.0) == 48.0 bit-identical across V8, WebCrypto, Java', true, {
+  capsule: CAP_F64_HARMONIC, args: [60.0, 40.0], expectOutput: 48.0, fuelLimit: 1000,
+});
+add('wasm-11', 'wasm_exec', 'SVA v1.2 linear memory active data segment + i32.load/i32.store sum(4) == 100', true, {
+  capsule: CAP_MEM_SUM, args: [4], expectOutput: 100, fuelLimit: 1000,
+});
+add('wasm-12', 'wasm_exec', 'SVA v1.2 linear memory f64.store/f64.load + memory.grow + memory.size(0.5) == 3.5', true, {
+  capsule: CAP_MEM_GROW_F64, args: [0.5], expectOutput: 3.5, fuelLimit: 1000,
+});
+add('wasm-13', 'wasm_exec', 'SVA v1.2 out-of-bounds linear memory load (addr=65536 on 1 page) traps deterministically (mem_oob)', true, {
+  capsule: CAP_MEM_OOB, args: [65536], expectTrap: 'mem_oob', fuelLimit: 1000,
+});
+add('wasm-14', 'wasm_exec', 'SVA v1.2 f64 NaN -> i32.trunc_f64_s (0.0/0.0) traps deterministically (invalid_conversion)', true, {
+  capsule: CAP_TRUNC_TRAP, args: [0.0, 0.0], expectTrap: 'invalid_conversion', fuelLimit: 1000,
+});
 
 const doc = {
-  specVersion: 'sva-conformance/1.1',
+  specVersion: 'sva-conformance/1.2',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {

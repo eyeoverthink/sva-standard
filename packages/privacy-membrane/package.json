@@ -1,15 +1,46 @@
 {
   "name": "@eyeoverthink/privacy-membrane",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Zero-dependency Privacy Membrane (PII/secret sealing, digit-squeezed egress leak audit, lenient unsealing) & Sentinel prompt-injection guard for Node.js and browsers",
   "license": "Apache-2.0",
   "main": "./index.js",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./membrane": "./membrane-core.js",
+    "./sentinel": "./sentinel.js"
   },
   "bin": {
     "privacy-membrane": "./bin/privacy-membrane.js"
+  },
+  "files": [
+    "index.js",
+    "membrane-core.js",
+    "sentinel.js",
+    "bin/privacy-membrane.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "privacy",
+    "pii-redaction",
+    "prompt-injection",
+    "egress-guard",
+    "ema-1",
+    "local-first",
+    "zero-dependency"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eyeoverthink/sva-standard.git",
+    "directory": "packages/privacy-membrane"
+  },
+  "homepage": "https://eyeoverthink.github.io/sva-standard/membrane-lab.html",
+  "bugs": {
+    "url": "https://github.com/eyeoverthink/sva-standard/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.0.0"

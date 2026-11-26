@@ -1,6 +1,6 @@
 {
   "name": "@eyeoverthink/ai-receipt",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Zero-dependency offline AI Execution Receipt verifier (Ed25519 + SHA-256 + RFC 6962 Merkle + RFC 8785 JCS) for Node.js and browsers",
   "license": "Apache-2.0",
@@ -10,6 +10,35 @@
   },
   "bin": {
     "ai-receipt": "./bin/ai-receipt.js"
+  },
+  "files": [
+    "receipt-verify.js",
+    "bin/ai-receipt.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai-receipt",
+    "aer-1",
+    "ed25519",
+    "merkle",
+    "rfc6962",
+    "rfc8785",
+    "jcs",
+    "verifiable-ai",
+    "zero-dependency"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eyeoverthink/sva-standard.git",
+    "directory": "packages/ai-receipt"
+  },
+  "homepage": "https://eyeoverthink.github.io/sva-standard/receipt-lab.html",
+  "bugs": {
+    "url": "https://github.com/eyeoverthink/sva-standard/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.0.0"

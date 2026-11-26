@@ -1,14 +1,14 @@
 {
-  "specVersion": "sva-conformance/1.1",
+  "specVersion": "sva-conformance/1.2",
   "generatedWith": "node:v24.11.1",
-  "total": 70,
+  "total": 76,
   "suites": {
     "jcs": 10,
     "merkle": 10,
     "aer1": 15,
     "vsc1": 13,
     "ema1": 14,
-    "wasm_exec": 8
+    "wasm_exec": 14
   },
   "vectors": [
     {
@@ -3334,6 +3334,260 @@
           1
         ],
         "expectOutput": 1,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-09",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 f64 compound discount(240.0, 0.25, 0.1) == 162.0 bit-identical across V8, WebCrypto, Java",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_f64_discount",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABCAFgA3x8fAF8AwIBAAcIAQRtYWluAAAKIAEeACAARAAAAAAAAPA/IAGhokQAAAAAAADwPyACoaIL",
+          "codeSha256": "09fdbde9aec33cc71f534ff078668ee1ac7d83c8691e58c0207b1eca65bcc581",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                240,
+                0.25,
+                0.1
+              ],
+              "output": 162
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "fc733dbeea047e1342eb04977c8b4e72fcbf6c97f418f897ced515f8610cd45f8ea1d1a6c156b372a7cfb78863f6d020155ada218683c85eb6da4d98c4250a09"
+        },
+        "args": [
+          240,
+          0.25,
+          0.1
+        ],
+        "expectOutput": 162,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-10",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 f64 harmonic mean(60.0, 40.0) == 48.0 bit-identical across V8, WebCrypto, Java",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_f64_harmonic_mean",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBwFgAnx8AXwDAgEABwgBBG1haW4AAAoZARcARAAAAAAAAABAIACiIAGiIAAgAaCjCw==",
+          "codeSha256": "e71cede2d420c38f4a0c0db0207d4c64d6867a61dc4eca0a6afc4b466e1ccb3f",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                60,
+                40
+              ],
+              "output": 48
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "9fbb2736adfd4de20248818c8da8a6f324fb65f947610f40a4d321bc76110c511de28ff561ead732cfa28e3e17118df31b6d9541a72a6b0fbf95686c6b496b0a"
+        },
+        "args": [
+          60,
+          40
+        ],
+        "expectOutput": 48,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-11",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 linear memory active data segment + i32.load/i32.store sum(4) == 100",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_mem_sum",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBgFgAX8BfwMCAQAFBAEBAQIHCAEEbWFpbgAACj8BPQECf0EAIQFBACECAkADQCACIABODQEgASACQQRsKAIAaiEBIAJBAWohAgwACwtBwAAgATYCAEHAACgCAAsLFgEAQQALEAoAAAAUAAAAHgAAACgAAAA=",
+          "codeSha256": "bde6bfd788fca0dd93beed4eb652480705a68f999e725aaa4b684a1c85628850",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                4
+              ],
+              "output": 100
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "b9b43f6c4481212864dc42aee0e43528d1596df84f1ce6080992e32a358ad6321548c812d4023799feda0804c69261791dc9e67269816b8a8c80e0c7bf971c00"
+        },
+        "args": [
+          4
+        ],
+        "expectOutput": 100,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-12",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 linear memory f64.store/f64.load + memory.grow + memory.size(0.5) == 3.5",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_mem_grow_f64",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBgFgAXwBfAMCAQAFBAEBAQQHCAEEbWFpbgAAChoBGABBACAAOQMAQQFAALc/ALegQQArAwCgCw==",
+          "codeSha256": "df6654d12e42f9876a2a5419f21c536840f0b2b48424941a96e06ce87265cc44",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                0.5
+              ],
+              "output": 3.5
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "50644b9c0eff654282b74c67014af0d58cca538d5fd6fa9ab4d95c1c7310223a5cef4ec479b0856e1c33be663723b6130d2f6f4a625b4150f00086eff7d6e30f"
+        },
+        "args": [
+          0.5
+        ],
+        "expectOutput": 3.5,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-13",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 out-of-bounds linear memory load (addr=65536 on 1 page) traps deterministically (mem_oob)",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_mem_oob",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBgFgAX8BfwMCAQAFBAEBAQEHCAEEbWFpbgAACgkBBwAgACgCAAs=",
+          "codeSha256": "489a9d7a1c6864b5bd2602060902a232e38d3e267ff989d059ca731e6e7e4969",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                0
+              ],
+              "output": 0
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "4ac8204d2916a7f1dd100ed5ce653c7b9b833eaa38a1e654338f0c666e895e9f9a965fcb045f360dfd403d7e5dcca069861d45705983abb30e965868da73f007"
+        },
+        "args": [
+          65536
+        ],
+        "expectTrap": "mem_oob",
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-14",
+      "suite": "wasm_exec",
+      "description": "SVA v1.2 f64 NaN -> i32.trunc_f64_s (0.0/0.0) traps deterministically (invalid_conversion)",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_f64_trunc_trap",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBwFgAnx8AX8DAgEABwgBBG1haW4AAAoKAQgAIAAgAaOqCw==",
+          "codeSha256": "c5229729063ccb1e69743a260562fd6f14eb475c997d171d1119ca538e26f6a6",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10,
+                2
+              ],
+              "output": 5
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "36566574a77545400e8484d27804823bc7600de466cc729a999e0d016cb6d391f212e114a409d927ad3b7fc16c65229bdfd288b6e2ac01a00e3c2937f9fe470c"
+        },
+        "args": [
+          0,
+          0
+        ],
+        "expectTrap": "invalid_conversion",
         "fuelLimit": 1000
       }
     }
