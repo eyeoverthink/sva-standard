@@ -102,6 +102,13 @@ node conformance/interop/opeg1-aer1/verify-opeg1-aer1.mjs conformance/interop/op
 
 ## Scope
 
+By design, the AER-1 profile carries no issuer authentication: core AER-1
+does not bind an issuer key in-band, so the verdict reports
+`issuerKeyBinding: "absent"` rather than claiming an authentication it did
+not perform. This gate checks that a receipt is internally intact and bound
+to the envelope; a deployment that requires proof of who issued a receipt
+must layer that check on top.
+
 This directory is additive only. The frozen 7-case interop file
 `conformance/interop/aer1-svaer1/vectors.json` is untouched, at its pinned
 SHA-256 `796a5c8783b9927b41682bf35acda74517ccafd9b16fcda52003330bf19dfcf76`,
