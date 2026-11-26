@@ -9,7 +9,7 @@
     ".": "./binder-induction.js"
   },
   "bin": {
-    "skill-crystallizer": "./bin/skill-crystallizer.js"
+    "skill-crystallizer": "bin/skill-crystallizer.js"
   },
   "files": [
     "binder-induction.js",
@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/eyeoverthink/sva-standard.git",
+    "url": "git+https://github.com/eyeoverthink/sva-standard.git",
     "directory": "packages/skill-crystallizer"
   },
   "homepage": "https://eyeoverthink.github.io/sva-standard/skill-lab.html",
