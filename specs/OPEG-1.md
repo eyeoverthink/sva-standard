@@ -35,13 +35,14 @@ Input_Source_Priority: [Runtime Receipt (SVA-ER/1)] > [Memory Artifact] > [Initi
   "spec": "opeg/1",
   "state": "S4_COMMIT",
   "mode": "EXECUTE_AND_RECEIVE",
+  "receiptFormat": "sva-er/1",
   "sourcePriority": ["runtime_receipt", "memory_artifact", "initial_prompt"],
   "sanitizer": {
     "status": "SUCCESS",
     "rSan": { "exponent": 0.3333333333333333, "alpha": -1, "verified": true },
     "rSanSha256": "<64-hex SHA-256(JCS(rSan))>"
   },
-  "receipt": { "...valid SVA-ER/1 receipt whose statement.deliverableSha256 === sanitizer.rSanSha256..." }
+  "receipt": { "...valid SVA-ER/1 or AER-1 v0.4 receipt binding sanitizer.rSanSha256..." }
 }
 ```
 
@@ -52,9 +53,14 @@ A conforming verifier MUST reject unless ALL checks succeed:
 2. `mode === "EXECUTE_AND_RECEIVE"` (any `"DIRECT_INFERENCE"` or unknown mode MUST be rejected).
 3. `sourcePriority` is an array beginning with `"runtime_receipt"`.
 4. `sanitizer` is an object with `status === "SUCCESS"`, non-null object `rSan`, and `rSanSha256 === SHA-256(UTF8(JCS(rSan)))`.
-5. `receipt` is verified according to `receiptFormat` (default `"sva-er/1"`):
+5. `receiptFormat` (optional, defaults to `"sva-er/1"`) MUST be `"sva-er/1"` or `"aer-1"`:
    - **`"sva-er/1"` (default):** `evaluateSvaEr1({ receipt, deliverable: JCS(rSan) })` returns `ok === true`, `outcome === "verified"`, and `deliverable === "verified"`.
-   - **`"aer-1"` (format-agnostic interop profile for IETF `draft-zambo-aer1`):** `receipt` passes `AER-1` v0.4 core + Section 3.1 `metadata_hash` + `issuer_claims` binding verification, AND the decoded `canonical_bytes` payload binds `sanitizer.rSanSha256` (e.g. via `outputs` digest equality), with `clockAttestation: "absent"` and `issuerKeyBinding: "absent"` preserved explicitly rather than collapsed.
+   - **`"aer-1"` (IETF `draft-zambo-aer1-26` v0.4 interop adapter):**
+     1. `receipt` MUST pass `AER-1` v0.4 core, `output_hash`, `issuer_claims` version/provenance binding, and Section 3.1 `metadata_hash` verification.
+     2. Inside the base64-decoded UTF-8 JSON `canonical_bytes` payload (`payload`), `payload.outputs` MUST bind `sanitizer.rSanSha256` by **either**:
+        - **Direct payload match:** `SHA-256(UTF8(JCS(payload.outputs))) === sanitizer.rSanSha256`, **or**
+        - **Explicit digest field:** `payload.outputs.rSanSha256` equals `sanitizer.rSanSha256` or `"sha256:" + sanitizer.rSanSha256`.
+     3. The gate verifier MUST preserve `AER-1`'s explicit absent readings in its structured verdict (`receiptOutcome: { outcome: "verified", clockAttestation: "absent", issuerKeyBinding: "absent" }`) rather than collapsing them into a boolean.
 
 ## 5. Honest Limits
 
