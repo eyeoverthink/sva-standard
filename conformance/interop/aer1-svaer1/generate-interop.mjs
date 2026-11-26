@@ -222,6 +222,48 @@ const v05Aer = makeAer1V04({
   outputs: { status: fmpDeliverable },
 });
 
+// 6. interop-06: AER-1-side authoring of aer-04 (handover.wrap recorded on a host with no trusted clock) <-> SVA-ER/1 twin (clock.status = unattested, KEY_A)
+const v06Sva = makeSvaEr({
+  missionId: 'aer1-04-handover',
+  deliverable: 'handover:aer1-04:steps=3',
+  clockStatus: 'unattested',
+  key: KEY_A,
+  agencyName: 'zambodotdev',
+  events: [
+    { kind: 'tool.call', actor: 'rambo', data: { missionId: 'aer1-04-handover', tool: 'handover.wrap' } },
+    { kind: 'mission.complete', actor: 'rambo', data: { id: 'aer1-04-handover', resultHash: sha256('handover:aer1-04:steps=3') } },
+  ],
+});
+const v06Aer = makeAer1V04({
+  id: '22222222-2222-4222-8222-222222222204',
+  createdAt: '2026-11-26T00:00:00.000Z',
+  tool: { name: 'handover.wrap', version: '1.0.0', scope: 'agent-handover' },
+  provenanceClass: 'EXECUTED BY ZAMBO',
+  inputs: { job: 'aer1-04-handover' },
+  outputs: { deliverable: 'handover:aer1-04:steps=3', steps: 3 },
+});
+
+// 7. interop-07: AER-1-side authoring of aer-05 (receipt.verify under a drifted clock) <-> SVA-ER/1 twin (clock.status = drift, KEY_B)
+const v07Sva = makeSvaEr({
+  missionId: 'aer1-05-attribution',
+  deliverable: 'verified:aer1-05-target',
+  clockStatus: 'drift',
+  key: KEY_B,
+  agencyName: 'zambodotdev',
+  events: [
+    { kind: 'tool.call', actor: 'rambo', data: { missionId: 'aer1-05-attribution', tool: 'receipt.verify' } },
+    { kind: 'mission.complete', actor: 'rambo', data: { id: 'aer1-05-attribution', resultHash: sha256('verified:aer1-05-target') } },
+  ],
+});
+const v07Aer = makeAer1V04({
+  id: '22222222-2222-4222-8222-222222222205',
+  createdAt: '2026-11-26T00:00:00.000Z',
+  tool: { name: 'receipt.verify', version: '1.0.0', scope: 'cross-key-attribution' },
+  provenanceClass: 'EXECUTED BY ZAMBO',
+  inputs: { receipt: 'aer1-05-target' },
+  outputs: { deliverable: 'verified:aer1-05-target', outcome: 'verified' },
+});
+
 const doc = {
   format: 'svaer1-aer1-interop/1',
   svaStandardVersion: '1.4.0',
@@ -288,6 +330,28 @@ const doc = {
       aer1: v05Aer,
       expected: {
         svaer1: { ok: true, outcome: 'verified', deliverable: 'verified', clock: 'unattested', keyBinding: 'verified' },
+        aer1: { ok: true, outcome: 'verified', clockAttestation: 'absent', issuerKeyBinding: 'absent' },
+      },
+    },
+    {
+      id: 'interop-06',
+      origin: 'aer1:aer-04',
+      description: 'AER-1-side authoring of aer-04: a handover.wrap execution recorded on a host with no trusted clock; the SVA-ER/1 twin declares clock.status=unattested under KEY_A, the AER-1 record verifies keylessly with clockAttestation=absent and issuerKeyBinding=absent',
+      svaer1: v06Sva,
+      aer1: v06Aer,
+      expected: {
+        svaer1: { ok: true, outcome: 'verified', deliverable: 'verified', clock: 'unattested', keyBinding: 'verified' },
+        aer1: { ok: true, outcome: 'verified', clockAttestation: 'absent', issuerKeyBinding: 'absent' },
+      },
+    },
+    {
+      id: 'interop-07',
+      origin: 'aer1:aer-05',
+      description: 'AER-1-side authoring of aer-05: a receipt.verify execution under a drifted clock; the SVA-ER/1 twin declares clock.status=drift and verifies under the second key KEY_B, the AER-1 record names no key (issuerKeyBinding=absent) and verifies by recompute; attribution is the separate AER-1 id-binding layer question, not the core record',
+      svaer1: v07Sva,
+      aer1: v07Aer,
+      expected: {
+        svaer1: { ok: true, outcome: 'verified', deliverable: 'verified', clock: 'drift', keyBinding: 'verified' },
         aer1: { ok: true, outcome: 'verified', clockAttestation: 'absent', issuerKeyBinding: 'absent' },
       },
     },

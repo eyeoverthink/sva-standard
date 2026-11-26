@@ -4,7 +4,7 @@
 [![Live Zero-Backend Playgrounds](https://github.com/eyeoverthink/sva-standard/actions/workflows/pages.yml/badge.svg)](https://eyeoverthink.github.io/sva-standard/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Zero-dependency open wire standards (**`SVA-ER/1`**, **`VSC/1`**, **`EMA/1`**, **`OPEG/1`**, **`POR/1`**), a **90-vector golden conformance suite**, a **5-case bidirectional `AER-1` ↔ `SVA-ER/1` interop harness** (pinned to IETF `draft-zambo-aer1-26`, kit `1.6.1`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 published zero-dep npm packages**, and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
+Zero-dependency open wire standards (**`SVA-ER/1`**, **`VSC/1`**, **`EMA/1`**, **`OPEG/1`**, **`POR/1`**), a **90-vector golden conformance suite**, a **7-case bidirectional `AER-1` ↔ `SVA-ER/1` interop harness** (pinned to IETF `draft-zambo-aer1-26`, kit `1.6.1`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 published zero-dep npm packages**, and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
 
 > **10-Second Verification (0 GPU, 0 API keys, 0 `npm install`):**
 > - **Live Static Playgrounds ($0 GitHub Pages, 0 external CDNs):** https://eyeoverthink.github.io/sva-standard/
@@ -13,7 +13,7 @@ Zero-dependency open wire standards (**`SVA-ER/1`**, **`VSC/1`**, **`EMA/1`**, *
 >   node conformance/v1/runners/node-verify.mjs           # 90/90 PASSED (~29 ms, node:crypto + V8 WebAssembly)
 >   node conformance/v1/runners/webcrypto-verify.mjs      # 90/90 PASSED (~51 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
 >   java conformance/v1/runners/SvaConformance.java       # 90/90 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
->   node conformance/interop/aer1-svaer1/verify-interop.mjs  # 5/5 PASSED (draft-zambo-aer1-26 kit 1.6.1 <-> SVA-ER/1)
+>   node conformance/interop/aer1-svaer1/verify-interop.mjs  # 7/7 PASSED (draft-zambo-aer1-26 kit 1.6.1 <-> SVA-ER/1)
 >   node demos/immune-mesh/run-demo.mjs                   # 4 local HTTP agencies, 5 scenarios, 0 GPU (~56 ms)
 >   npm test                                              # Runs all 3 runtimes + interop + mesh demo + packages + playgrounds
 >   ```
@@ -67,6 +67,8 @@ Bidirectional clock-attestation and key-binding test vectors pinned against Bren
 - `interop-03` (key-binding negative control: `KEY_B → KEY_A` swap in `SVA-ER/1` + `created_at` `metadata_hash` tamper in `AER-1` v0.4)
 - `interop-04` (`AER-1` corpus `valid/bound-04.json` expressed in `SVA-ER/1` with `clock=attested` + `KEY_A`)
 - `interop-05` (real hardware case: `FMP/1` offline Raspberry Pi mesh relay without RTC exporting `clock=unattested`)
+- `interop-06` (`aer1:aer-04` `clock=unattested`, `KEY_A` ↔ `AER-1` v0.4 reading `clockAttestation=absent`, `issuerKeyBinding=absent`; AER-1-side authoring, `handover.wrap`)
+- `interop-07` (`aer1:aer-05` `clock=drift`, `KEY_B` ↔ `AER-1` v0.4 reading `clockAttestation=absent`, `issuerKeyBinding=absent`; AER-1-side authoring, `receipt.verify`)
 
 Every `AER-1` v0.4 counterpart record in `vectors.json` was verified directly against `zambo.dev/aer1/corpus/v1.6.0/base/conformance.cjs`.
 
@@ -77,7 +79,7 @@ Every `AER-1` v0.4 counterpart record in `vectors.json` was verified directly ag
 | Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **90 / 90** | ~29 ms |
 | W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **90 / 90** | ~51 ms |
 | Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **90 / 90** | ~270 ms |
-| Joint `AER-1` ↔ `SVA-ER/1` Interop (`verify-interop.mjs`) | 0 | **5 / 5** | ~5 ms |
+| Joint `AER-1` ↔ `SVA-ER/1` Interop (`verify-interop.mjs`) | 0 | **7 / 7** | ~5 ms |
 
 ---
 

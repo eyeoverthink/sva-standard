@@ -17,6 +17,8 @@ Each case expresses the **same execution event** in both `SVA-ER/1` and `AER-1` 
 | `interop-03` | `svaer-05-key-swap` | Key-binding negative control (`KEY_B → KEY_A` swap in `SVA-ER/1`) + `created_at` tamper in `AER-1` (`metadata_hash` mismatch) | `verification_failed`, `keyBinding=verification_failed` | Core keyless record `verified` (`issuerKeyBinding=absent`); tampered `created_at` fails `metadata_hash` (`verification_failed`) |
 | `interop-04` | `aer1:valid/bound-04.json` | Brennan's kit 1.6.1 `bound-04` (`get_weather`, Austin) expressed in `SVA-ER/1` | `verified`, `deliverable=verified`, `clock=attested`, `keyBinding=verified` | `verified`, `clockAttestation=absent`, `issuerKeyBinding=absent` |
 | `interop-05` | `fmp1-offline-no-rtc` | Real hardware case: `FMP/1` Raspberry Pi mesh relay with no RTC (`clock_trusted=false`) delivering custodied message after partition | `verified`, `deliverable=verified`, `clock=unattested`, `keyBinding=verified` | `verified`, `clockAttestation=absent`, `issuerKeyBinding=absent` |
+| `interop-06` | `aer1:aer-04` | AER-1-side authoring: `handover.wrap` execution with `clock.status = "unattested"` (`KEY_A`) | `verified`, `deliverable=verified`, `clock=unattested`, `keyBinding=verified` | `verified`, `clockAttestation=absent`, `issuerKeyBinding=absent` |
+| `interop-07` | `aer1:aer-05` | AER-1-side authoring: `receipt.verify` execution with `clock.status = "drift"` under secondary `KEY_B` | `verified`, `deliverable=verified`, `clock=drift`, `keyBinding=verified` | `verified`, `clockAttestation=absent`, `issuerKeyBinding=absent` |
 
 ## Run Locally (0 deps, < 50 ms)
 

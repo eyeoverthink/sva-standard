@@ -58,10 +58,10 @@ test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32
   assert.equal(res.passed, 90);
 });
 
-test('Joint AER-1 (draft-zambo-aer1-26, kit 1.6.1) <-> SVA-ER/1 clock & key-binding interop harness passes 5/5', () => {
+test('Joint AER-1 (draft-zambo-aer1-26, kit 1.6.1) <-> SVA-ER/1 clock & key-binding interop harness passes 7/7', () => {
   const res = runInteropVerification();
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 5);
+  assert.equal(res.passed, 7);
 });
 
 test('Stage 5 Cross-Agency Immune Mesh Demo (4 local HTTP agencies, 0 GPU) passes all 5 containment/quorum/veto scenarios', async () => {

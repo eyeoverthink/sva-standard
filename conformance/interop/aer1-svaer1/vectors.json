@@ -524,6 +524,210 @@
           "issuerKeyBinding": "absent"
         }
       }
+    },
+    {
+      "id": "interop-06",
+      "origin": "aer1:aer-04",
+      "description": "AER-1-side authoring of aer-04: a handover.wrap execution recorded on a host with no trusted clock; the SVA-ER/1 twin declares clock.status=unattested under KEY_A, the AER-1 record verifies keylessly with clockAttestation=absent and issuerKeyBinding=absent",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "zambodotdev",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "aer1-04-handover",
+            "deliverableSha256": "5a7ab350051dd721e1aaea943346c901cf14c55a7a779b4706e0fb1e215c0c91",
+            "merkleRoot": "92e00240e96b9fc443fa047222e610ec8c3bc279dada1afd6f839124e240ad06",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "unattested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "ae045868d6c9f3c17fe1975c855b7cd9b5b18170f9d48dc10c224512d709a5eaabbf7f77893ed8aebb4ae1df9a281dfbaf6c20fda2eb9f92e3261a52c853cb05",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "rambo",
+              "data": {
+                "missionId": "aer1-04-handover",
+                "tool": "handover.wrap"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "eb913bf110226c0b5597dd99e559ae20b36ad78c31b7dc6ccf268a850c5723cd",
+              "sig": "2f942f67701ad80346dffed7e37cf0eecef87ca8696faa820d280e32f5d23befb0037ff618e3cf05ead61b6942e222272a9c3ed3c56369d6cf564eb8540bb308",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "9003d2102c00bc09d40e3c6a24e6a8feb5b58f4fe0c1d704275782d0a81d61ed",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "rambo",
+              "data": {
+                "id": "aer1-04-handover",
+                "resultHash": "5a7ab350051dd721e1aaea943346c901cf14c55a7a779b4706e0fb1e215c0c91"
+              },
+              "prev": "eb913bf110226c0b5597dd99e559ae20b36ad78c31b7dc6ccf268a850c5723cd",
+              "hash": "5ffe4dccb57fe130049c74cb61e3b87c84ea8a4c25863e92f531b46097813b10",
+              "sig": "9938ec4af51066a25dc318db90433caf5d3b30e37c89330b38660795ebaf468d505d687fdead9d66d525cb9e5bc5d209505eed492edd1dbd58562804be99c400",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "0aae4a1a444166d5c7c086416c2ae32e5bb67d381554ef74c956d0bd71d86b2f",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "handover:aer1-04:steps=3"
+      },
+      "aer1": {
+        "id": "22222222-2222-4222-8222-222222222204",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "handover.wrap",
+          "version": "1.0.0",
+          "scope": "agent-handover"
+        },
+        "provenance_class": "EXECUTED BY ZAMBO",
+        "canonical_bytes": "eyJpbnB1dHMiOnsiam9iIjoiYWVyMS0wNC1oYW5kb3ZlciJ9LCJpc3N1ZXJfY2xhaW1zIjp7InByb3ZlbmFuY2VfY2xhc3MiOiJFWEVDVVRFRCBCWSBaQU1CTyJ9LCJvdXRwdXRzIjp7ImRlbGl2ZXJhYmxlIjoiaGFuZG92ZXI6YWVyMS0wNDpzdGVwcz0zIiwic3RlcHMiOjN9LCJyZWNlaXB0X3NjaGVtYV92ZXJzaW9uIjoiMC40IiwidG9vbCI6ImhhbmRvdmVyLndyYXAifQ==",
+        "output_hash": "sha256:b0a196924102dc92424d2ec0b3a8716895165e5772de28eac03634886a3e4715",
+        "metadata_hash": "sha256:52935104643257784214cd8651b40093e2151789ce92c83d460ac9f470650f5c",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "unattested",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
+    },
+    {
+      "id": "interop-07",
+      "origin": "aer1:aer-05",
+      "description": "AER-1-side authoring of aer-05: a receipt.verify execution under a drifted clock; the SVA-ER/1 twin declares clock.status=drift and verifies under the second key KEY_B, the AER-1 record names no key (issuerKeyBinding=absent) and verifies by recompute; attribution is the separate AER-1 id-binding layer question, not the core record",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "zambodotdev",
+            "publicKey": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "aer1-05-attribution",
+            "deliverableSha256": "19421e29e2eb00e8a155215254b233288498b39d16f3fd179db819e1431ed820",
+            "merkleRoot": "358b3595c362a76ead5f8f439a1bbfd0030e3e0ed71c51b2961ba12d9e6e37d7",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "drift",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "a5a094bdbff4f72441f6ff07d51adad77d3dd28d01476f5e3d22b21738099b5618ba057ded024e8fce3bd20b476baecd08a6c2153d78d7a3c2a359714a190900",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "rambo",
+              "data": {
+                "missionId": "aer1-05-attribution",
+                "tool": "receipt.verify"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "e7e3fb8e7a40a4ac236c25d88b07594e464b02fc6cfd6d6fbe0c4647f9587f31",
+              "sig": "79587f0c3a24abcabb72feaddca8139c828fe7fdcc00b56fb69b710adb3a734b15f93a8e962814fb62682c663c95ac3460c3b6c0baa48ff2df7dffab1c1ed50c",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "86c98b9efaefb9e7a07c2da2754786af3afe638c5fedb62bed651ce934ea0f2d",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "rambo",
+              "data": {
+                "id": "aer1-05-attribution",
+                "resultHash": "19421e29e2eb00e8a155215254b233288498b39d16f3fd179db819e1431ed820"
+              },
+              "prev": "e7e3fb8e7a40a4ac236c25d88b07594e464b02fc6cfd6d6fbe0c4647f9587f31",
+              "hash": "9377fb87eb0706a19e53f28104b4d703f64a99184f1b875f2cbae3b7154a3625",
+              "sig": "69d52b709ad1ce404eb6011e8dcbbab1d6542fb4887658284971960b2fc12dc15628dd501339e5dffbd19eb3e78caf76aaca968c6b954730122fc849b0b6010c",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "b1afff747dcf7eb2397a1d1f06c133545696953f413fd66e53697492455cdb7d",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "verified:aer1-05-target"
+      },
+      "aer1": {
+        "id": "22222222-2222-4222-8222-222222222205",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "receipt.verify",
+          "version": "1.0.0",
+          "scope": "cross-key-attribution"
+        },
+        "provenance_class": "EXECUTED BY ZAMBO",
+        "canonical_bytes": "eyJpbnB1dHMiOnsicmVjZWlwdCI6ImFlcjEtMDUtdGFyZ2V0In0sImlzc3Vlcl9jbGFpbXMiOnsicHJvdmVuYW5jZV9jbGFzcyI6IkVYRUNVVEVEIEJZIFpBTUJPIn0sIm91dHB1dHMiOnsiZGVsaXZlcmFibGUiOiJ2ZXJpZmllZDphZXIxLTA1LXRhcmdldCIsIm91dGNvbWUiOiJ2ZXJpZmllZCJ9LCJyZWNlaXB0X3NjaGVtYV92ZXJzaW9uIjoiMC40IiwidG9vbCI6InJlY2VpcHQudmVyaWZ5In0=",
+        "output_hash": "sha256:7d7cd9b23c33e950996a4f85e7809956a166e9137735e22ec59ac13c16a7223c",
+        "metadata_hash": "sha256:55aa637985a155ffe57c39e9ae70396596229b2e17bee2dd81dc7691a0deea55",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "drift",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
     }
   ]
 }
