@@ -88,35 +88,71 @@ async function verifyMerkle({ leaf, seq, size, root, path: steps }) {
   return h === root;
 }
 
-async function verifyAer1({ receipt, deliverable }) {
-  if (!receipt || receipt.spec !== 'aer/1') return false;
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))$/;
+
+function isValidRfc3339(s) {
+  if (typeof s !== 'string') return false;
+  const m = RFC3339.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6]);
+  if (mo < 1 || mo > 12 || hh > 23 || mm > 59 || ss > 60) return false;
+  const leap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+  const maxDay = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1];
+  if (d < 1 || d > maxDay) return false;
+  if (m[8] !== undefined && (Number(m[8]) > 23 || Number(m[9]) > 59)) return false;
+  return true;
+}
+
+export async function evaluateSvaEr1({ receipt, deliverable }) {
+  const malformed = { ok: false, outcome: 'rejected_malformed', deliverable: 'not_checked', clock: 'verification_failed' };
+  const failed = (delivState = 'not_checked', clockState = 'verification_failed') => ({
+    ok: false, outcome: 'verification_failed', deliverable: delivState, clock: clockState,
+  });
+  if (!receipt || receipt.spec !== 'sva-er/1') return malformed;
   const pub = receipt.agency?.publicKey;
   const st = receipt.statement;
-  if (!HEX64.test(String(pub || '')) || !st || typeof st !== 'object' || Array.isArray(st) || !Array.isArray(receipt.entries)) return false;
-  if (st.type !== 'aer.statement' || typeof st.missionId !== 'string' || st.missionId.length === 0) return false;
-  if (!HEX64.test(String(st.deliverableSha256 || '')) || !HEX64.test(String(st.merkleRoot || ''))) return false;
-  if (st.merkle !== 'rfc6962-sha256' || !Number.isSafeInteger(st.size) || st.size < 1 || !Number.isSafeInteger(st.entries) || st.entries < 1) return false;
-  if (!st.clock || typeof st.clock !== 'object' || !['attested', 'drift', 'unattested'].includes(st.clock.status) || typeof st.clock.issuedAt !== 'string' || st.clock.issuedAt.length === 0) return false;
-  if (!await ed25519Verify(pub, canonical(st), receipt.statementSig)) return false;
-  if (receipt.entries.length !== st.entries) return false;
+  if (!HEX64.test(String(pub || '')) || !st || typeof st !== 'object' || Array.isArray(st) || !Array.isArray(receipt.entries)) return malformed;
+  if (st.type !== 'sva-er.statement' || typeof st.missionId !== 'string' || st.missionId.length === 0) return malformed;
+  if (!HEX64.test(String(st.deliverableSha256 || '')) || !HEX64.test(String(st.merkleRoot || ''))) return malformed;
+  if (st.merkle !== 'rfc6962-sha256' || !Number.isSafeInteger(st.size) || st.size < 1 || !Number.isSafeInteger(st.entries) || st.entries < 1) return malformed;
+  if (!st.clock || typeof st.clock !== 'object' || !['attested', 'drift', 'unattested'].includes(st.clock.status) || !isValidRfc3339(st.clock.issuedAt)) return malformed;
+  const clockState = st.clock.status;
+  if (!await ed25519Verify(pub, canonical(st), receipt.statementSig)) return failed('not_checked', clockState);
+  if (receipt.entries.length !== st.entries) return failed('not_checked', clockState);
 
   const seen = new Set();
   let hasComplete = false;
   for (const e of receipt.entries) {
-    if (!e || !Number.isSafeInteger(e.seq) || e.seq < 1 || e.seq > st.size || seen.has(e.seq)) return false;
+    if (!e || !Number.isSafeInteger(e.seq) || e.seq < 1 || e.seq > st.size || seen.has(e.seq)) return failed('not_checked', clockState);
     seen.add(e.seq);
     const recomputed = await sha256Text(canonical({ seq: e.seq, ts: e.ts, kind: e.kind, actor: e.actor, data: e.data, prev: e.prev }));
-    if (recomputed !== e.hash) return false;
-    if (e.signer !== pub || !await ed25519Verify(pub, e.hash, e.sig)) return false;
-    if (!await verifyMerkle({ leaf: e.hash, seq: e.seq, size: st.size, root: st.merkleRoot, path: e.proof })) return false;
-    if (e.data?.id !== st.missionId && e.data?.missionId !== st.missionId) return false;
+    if (recomputed !== e.hash) return failed('not_checked', clockState);
+    if (e.signer !== pub || !await ed25519Verify(pub, e.hash, e.sig)) return failed('not_checked', clockState);
+    if (!await verifyMerkle({ leaf: e.hash, seq: e.seq, size: st.size, root: st.merkleRoot, path: e.proof })) return failed('not_checked', clockState);
+    if (e.data?.id !== st.missionId && e.data?.missionId !== st.missionId) return failed('not_checked', clockState);
     if (e.kind === 'mission.complete') {
-      if (e.data?.resultHash !== st.deliverableSha256) return false;
+      if (e.data?.resultHash !== st.deliverableSha256) return failed('not_checked', clockState);
       hasComplete = true;
     }
   }
-  if (!hasComplete) return false;
-  if (deliverable != null && await sha256Text(String(deliverable)) !== st.deliverableSha256) return false;
+  if (!hasComplete) return failed('not_checked', clockState);
+  let delivState = 'not_checked';
+  if (deliverable != null) {
+    if (await sha256Text(String(deliverable)) !== st.deliverableSha256) return failed('verification_failed', clockState);
+    delivState = 'verified';
+  }
+  return { ok: true, outcome: 'verified', deliverable: delivState, clock: clockState };
+}
+
+async function verifySvaEr1(input) {
+  const res = await evaluateSvaEr1(input);
+  if (!res.ok) return false;
+  if (input.expectOutcome) {
+    for (const [k, v] of Object.entries(input.expectOutcome)) {
+      if (res[k] !== v) return false;
+    }
+  }
   return true;
 }
 
@@ -440,7 +476,7 @@ export async function verifyVector(v) {
       return canonical(val) === v.input.expected;
     }
     case 'merkle': return verifyMerkle(v.input);
-    case 'aer1': return verifyAer1(v.input);
+    case 'svaer1': return verifySvaEr1(v.input);
     case 'vsc1': return verifyVsc1(v.input);
     case 'ema1': return verifyEma1(v.input);
     case 'wasm_exec': return verifyWasmExec(v.input);

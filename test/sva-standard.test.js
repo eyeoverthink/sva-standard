@@ -18,38 +18,40 @@ const VEC = path.join(ROOT, 'conformance', 'v1', 'vectors.json');
 const JAVA_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'SvaConformance.java');
 const WEBCRYPTO_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'webcrypto-verify.mjs');
 
-test('specs and 76-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
-  for (const spec of ['AER-1.md', 'VSC-1.md', 'EMA-1.md']) {
+test('specs and 78-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
+  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md']) {
     assert.ok(fs.existsSync(path.join(ROOT, 'specs', spec)), `missing specs/${spec}`);
   }
+  assert.ok(!fs.existsSync(path.join(ROOT, 'specs', 'AER-1.md')), 'legacy colliding specs/AER-1.md must be removed');
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
-  assert.equal(doc.total, 76);
+  assert.equal(doc.total, 78);
+  assert.equal(doc.suites.svaer1, 17);
   assert.equal(doc.suites.wasm_exec, 14);
   const wcSrc = fs.readFileSync(WEBCRYPTO_RUNNER, 'utf8');
   assert.ok(!/(?:from|import\s*\(|require\s*\()\s*['"]node:crypto['"]/.test(wcSrc));
 });
 
-test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 76/76 golden vectors', () => {
+test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 78/78 golden vectors', () => {
   const res = runConformance(VEC);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 76);
+  assert.equal(res.passed, 78);
 });
 
-test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 76/76 golden vectors', async () => {
+test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 78/78 golden vectors', async () => {
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
   const res = await runConformanceDoc(doc);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 76);
+  assert.equal(res.passed, 78);
 });
 
-test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 76/76 golden vectors', (t) => {
+test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 78/78 golden vectors', (t) => {
   let javaOk = true;
   try { execFileSync('java', ['-version'], { stdio: 'pipe' }); } catch { javaOk = false; }
   if (!javaOk) { t.skip('java not installed'); return; }
   const out = execFileSync('java', [JAVA_RUNNER, VEC], { encoding: 'utf8' });
   const res = JSON.parse(out.trim());
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 76);
+  assert.equal(res.passed, 78);
 });
 
 test('Stage 5 Cross-Agency Immune Mesh Demo (4 local HTTP agencies, 0 GPU) passes all 4 containment/Byzantine/PII scenarios', async () => {
@@ -101,8 +103,21 @@ test('standalone packages: publish manifests, APIs & CLIs for ai-receipt, privac
   ], { encoding: 'utf8' }));
   assert.equal(taxTrapCli.routed, false);
 
-  // 3. ai-receipt rejects malformed input cleanly
-  assert.equal((await verifyReceipt(null)).ok, false);
+  // 3. ai-receipt verifies SVA-ER/1 receipts with named outcome vocabulary & rejects malformed input cleanly
+  const badRes = await verifyReceipt(null);
+  assert.equal(badRes.ok, false);
+  assert.equal(badRes.outcome, 'rejected_malformed');
+  const vecDoc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
+  const svaer01 = vecDoc.vectors.find((v) => v.id === 'svaer-01').input;
+  const svaer02 = vecDoc.vectors.find((v) => v.id === 'svaer-02').input;
+  const r1 = await verifyReceipt(svaer01.receipt, { deliverable: svaer01.deliverable });
+  assert.equal(r1.ok, true);
+  assert.equal(r1.outcome, 'verified');
+  assert.equal(r1.deliverable, 'verified');
+  assert.equal(r1.clock, 'attested');
+  const r2 = await verifyReceipt(svaer02.receipt, { deliverable: null });
+  assert.equal(r2.ok, true);
+  assert.equal(r2.deliverable, 'not_checked');
   assert.equal(typeof induce, 'function');
   assert.equal(typeof leaveOneOut, 'function');
   assert.equal(typeof applySpec, 'function');

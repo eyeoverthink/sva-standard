@@ -11,5 +11,5 @@ const receipt = JSON.parse(fs.readFileSync(file, 'utf8'));
 const deliverable = deliverableFile ? fs.readFileSync(deliverableFile, 'utf8') : null;
 const res = await verifyReceipt(receipt, { deliverable });
 for (const c of res.checks) console.log(`${c.ok ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ` (${c.detail})` : ''}`);
-console.log(res.ok ? '\nVERIFIED' : '\nNOT VERIFIED');
+console.log(`\nOUTCOME: ${res.outcome} | deliverable=${res.deliverable} | clock=${res.clock}`);
 process.exit(res.ok ? 0 : 1);

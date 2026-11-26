@@ -82,32 +82,62 @@ async function merkleFold(leaf, path, version = 2) {
   return h;
 }
 
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))$/;
+
+export function isValidRfc3339(s) {
+  if (typeof s !== 'string') return false;
+  const m = RFC3339.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6]);
+  if (mo < 1 || mo > 12 || hh > 23 || mm > 59 || ss > 60) return false;
+  const leap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+  const maxDay = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1];
+  if (d < 1 || d > maxDay) return false;
+  if (m[8] !== undefined && (Number(m[8]) > 23 || Number(m[9]) > 59)) return false;
+  return true;
+}
+
 /**
- * Verify a receipt. deliverable (optional): the text you were given; if present it must match the signed hash.
- * Returns { ok, checks: [{ name, ok, detail }], summary }.
+ * Verify a receipt (supports SVA-ER/1 wire format `spec: "sva-er/1"` and agency v1/v2 `type: "eyeoverthink.receipt"`).
+ * deliverable (optional): the text you were given; if omitted, reports `deliverable: "not_checked"`.
+ * Returns { ok, outcome, deliverable, clock, checks: [{ name, ok, detail }], summary }.
  */
 export async function verifyReceipt(receipt, { deliverable = null } = {}) {
   const checks = [];
   const check = (name, ok, detail = '') => { checks.push({ name, ok: Boolean(ok), detail }); return ok; };
-  if (!receipt || typeof receipt !== 'object' || receipt.type !== 'eyeoverthink.receipt') {
-    check('receipt format', false, 'not an eyeoverthink.receipt');
-    return { ok: false, checks };
+  const isSvaEr = Boolean(receipt && typeof receipt === 'object' && receipt.spec === 'sva-er/1');
+  const isLegacy = Boolean(receipt && typeof receipt === 'object' && receipt.type === 'eyeoverthink.receipt');
+  if (!isSvaEr && !isLegacy) {
+    check('receipt format', false, 'not an sva-er/1 or eyeoverthink.receipt');
+    return { ok: false, outcome: 'rejected_malformed', deliverable: 'not_checked', clock: 'verification_failed', checks };
   }
   const pub = receipt.agency?.publicKey;
   const st = receipt.statement;
-  const version = Number(receipt.version || 1);
+  const version = isSvaEr ? 2 : Number(receipt.version || 1);
+  const expectedStType = isSvaEr ? 'sva-er.statement' : 'eyeoverthink.receipt.statement';
+  const clockOk = !isSvaEr || (
+    st?.clock != null && typeof st.clock === 'object'
+    && ['attested', 'drift', 'unattested'].includes(st.clock.status)
+    && isValidRfc3339(st.clock.issuedAt)
+  );
   const formatOk = /^[0-9a-f]{64}$/i.test(pub || '')
     && Array.isArray(receipt.entries)
     && st != null && typeof st === 'object' && !Array.isArray(st)
-    && st.type === 'eyeoverthink.receipt.statement'
+    && st.type === expectedStType
     && typeof st.missionId === 'string' && st.missionId.length > 0
     && /^[0-9a-f]{64}$/i.test(String(st.deliverableSha256 || ''))
     && /^[0-9a-f]{64}$/i.test(String(st.merkleRoot || ''))
     && Number.isInteger(st.size) && st.size >= 1
     && Number.isInteger(st.entries) && st.entries >= 1
-    && (version === 1 || version === 2);
-  check('receipt format', formatOk, `version ${receipt.version}, ${Array.isArray(receipt.entries) ? receipt.entries.length : 0} entries`);
-  if (!formatOk) return { ok: false, checks };
+    && (version === 1 || version === 2)
+    && (!isSvaEr || st.merkle === 'rfc6962-sha256')
+    && clockOk;
+  check('receipt format', formatOk, isSvaEr ? `sva-er/1, ${Array.isArray(receipt.entries) ? receipt.entries.length : 0} entries` : `version ${receipt.version}, ${Array.isArray(receipt.entries) ? receipt.entries.length : 0} entries`);
+  if (!formatOk) {
+    return { ok: false, outcome: 'rejected_malformed', deliverable: 'not_checked', clock: 'verification_failed', checks };
+  }
+  const clockOutcome = isSvaEr ? st.clock.status : (st.clock?.status || 'not_present');
 
   // 4. Signed root statement.
   const stOk = await ed25519Verify(pub, canonical(st), receipt.statementSig);
@@ -154,9 +184,12 @@ export async function verifyReceipt(receipt, { deliverable = null } = {}) {
   const done = receipt.entries.find((e) => e && e.kind === 'mission.complete');
   check('mission completion entry present', Boolean(done), done ? `#${done.seq}, score ${done.data?.score}` : 'missing');
   check('completion entry matches the signed deliverable hash', done?.data?.resultHash === st.deliverableSha256, String(st.deliverableSha256).slice(0, 16) + '…');
+  let deliverableOutcome = 'not_checked';
   if (deliverable != null) {
     const dh = await sha256Hex(String(deliverable));
-    check('the deliverable you hold is the one the mission produced', dh === st.deliverableSha256, dh === st.deliverableSha256 ? 'byte-for-byte match' : `your text hashes to ${dh.slice(0, 16)}…`);
+    const match = dh === st.deliverableSha256;
+    deliverableOutcome = match ? 'verified' : 'verification_failed';
+    check('the deliverable you hold is the one the mission produced', match, match ? 'byte-for-byte match' : `your text hashes to ${dh.slice(0, 16)}…`);
   }
   if (bad.length) checks.push({ name: 'problems', ok: false, detail: bad.slice(0, 10).join('; ') });
 
@@ -172,5 +205,13 @@ export async function verifyReceipt(receipt, { deliverable = null } = {}) {
     valuesWithheld: of('membrane.crossing').reduce((s, e) => s + (e.data?.total || 0), 0),
     egressBlocked: of('membrane.egress_blocked').length,
   };
-  return { ok: checks.every((c) => c.ok), checks, summary };
+  const ok = checks.every((c) => c.ok);
+  return {
+    ok,
+    outcome: ok ? 'verified' : 'verification_failed',
+    deliverable: deliverableOutcome,
+    clock: clockOutcome,
+    checks,
+    summary,
+  };
 }

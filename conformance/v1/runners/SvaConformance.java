@@ -26,6 +26,7 @@ public class SvaConformance {
   private static final Pattern SKILL_NAME = Pattern.compile("^[a-z][a-z0-9_-]{1,63}$");
   private static final Pattern STRICT_B64 = Pattern.compile("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$");
   private static final Pattern SQUEEZE_DIGITS = Pattern.compile("(?<=\\d)[\\s.\\-()]+(?=\\d)");
+  private static final Pattern RFC3339 = Pattern.compile("^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?([Zz]|[+-](\\d{2}):(\\d{2}))$");
 
   public static void main(String[] args) throws Exception {
     long t0 = System.nanoTime();
@@ -73,7 +74,7 @@ public class SvaConformance {
           yield canonical(val).equals(asStr(input.get("expected")));
         }
         case "merkle" -> verifyMerkle(input);
-        case "aer1" -> verifyAer1(input);
+        case "svaer1" -> verifySvaEr1(input);
         case "vsc1" -> verifyVsc1(input);
         case "ema1" -> verifyEma1(input);
         case "wasm_exec" -> verifyWasmExec(input);
@@ -240,15 +241,32 @@ public class SvaConformance {
     return h.equals(root);
   }
 
-  // ==================== AER/1 Verifier ====================
-  private static boolean verifyAer1(Map<String, Object> in) throws Exception {
+  // ==================== SVA-ER/1 Verifier (Named Outcome Vocabulary + RFC 3339) ====================
+  private record SvaErOutcome(boolean ok, String outcome, String deliverable, String clock) {}
+
+  private static boolean isValidRfc3339(String s) {
+    if (s == null) return false;
+    var m = RFC3339.matcher(s);
+    if (!m.matches()) return false;
+    int y = Integer.parseInt(m.group(1)), mo = Integer.parseInt(m.group(2)), d = Integer.parseInt(m.group(3));
+    int hh = Integer.parseInt(m.group(4)), mm = Integer.parseInt(m.group(5)), ss = Integer.parseInt(m.group(6));
+    if (mo < 1 || mo > 12 || hh > 23 || mm > 59 || ss > 60) return false;
+    boolean leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+    int[] days = { 31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    if (d < 1 || d > days[mo - 1]) return false;
+    if (m.group(8) != null && (Integer.parseInt(m.group(8)) > 23 || Integer.parseInt(m.group(9)) > 59)) return false;
+    return true;
+  }
+
+  private static SvaErOutcome evaluateSvaEr1(Map<String, Object> in) throws Exception {
+    SvaErOutcome malformed = new SvaErOutcome(false, "rejected_malformed", "not_checked", "verification_failed");
     Map<String, Object> receipt = asObj(in.get("receipt"));
     String deliverable = asStr(in.get("deliverable"));
-    if (receipt == null || !"aer/1".equals(asStr(receipt.get("spec")))) return false;
+    if (receipt == null || !"sva-er/1".equals(asStr(receipt.get("spec")))) return malformed;
     Map<String, Object> agency = asObj(receipt.get("agency"));
     Map<String, Object> st = asObj(receipt.get("statement"));
     List<Object> entries = asList(receipt.get("entries"));
-    if (agency == null || st == null || entries == null) return false;
+    if (agency == null || st == null || entries == null) return malformed;
     String pub = asStr(agency.get("publicKey"));
     String stType = asStr(st.get("type"));
     String missionId = asStr(st.get("missionId"));
@@ -256,26 +274,26 @@ public class SvaConformance {
     String merkleRoot = asStr(st.get("merkleRoot"));
     Integer size = asSafeInt(st.get("size"));
     Integer count = asSafeInt(st.get("entries"));
-    if (pub == null || !HEX64.matcher(pub).matches()) return false;
-    if (!"aer.statement".equals(stType) || missionId == null || missionId.isEmpty()) return false;
-    if (delivHash == null || !HEX64.matcher(delivHash).matches() || merkleRoot == null || !HEX64.matcher(merkleRoot).matches()) return false;
-    if (size == null || size < 1 || count == null || count < 1) return false;
-    if (!"rfc6962-sha256".equals(asStr(st.get("merkle")))) return false;
+    if (pub == null || !HEX64.matcher(pub).matches()) return malformed;
+    if (!"sva-er.statement".equals(stType) || missionId == null || missionId.isEmpty()) return malformed;
+    if (delivHash == null || !HEX64.matcher(delivHash).matches() || merkleRoot == null || !HEX64.matcher(merkleRoot).matches()) return malformed;
+    if (size == null || size < 1 || count == null || count < 1) return malformed;
+    if (!"rfc6962-sha256".equals(asStr(st.get("merkle")))) return malformed;
     Map<String, Object> clock = asObj(st.get("clock"));
-    if (clock == null) return false;
+    if (clock == null) return malformed;
     String cs = asStr(clock.get("status"));
     String issuedAt = asStr(clock.get("issuedAt"));
-    if (cs == null || !Set.of("attested", "drift", "unattested").contains(cs) || issuedAt == null || issuedAt.isEmpty()) return false;
-    if (!ed25519Verify(pub, canonical(st), asStr(receipt.get("statementSig")))) return false;
-    if (entries.size() != count) return false;
+    if (cs == null || !Set.of("attested", "drift", "unattested").contains(cs) || !isValidRfc3339(issuedAt)) return malformed;
+    if (!ed25519Verify(pub, canonical(st), asStr(receipt.get("statementSig")))) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
+    if (entries.size() != count) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
 
     Set<Integer> seen = new HashSet<>();
     boolean hasComplete = false;
     for (Object item : entries) {
       Map<String, Object> e = asObj(item);
-      if (e == null) return false;
+      if (e == null) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
       Integer seq = asSafeInt(e.get("seq"));
-      if (seq == null || seq < 1 || seq > size || !seen.add(seq)) return false;
+      if (seq == null || seq < 1 || seq > size || !seen.add(seq)) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
       Map<String, Object> core = new LinkedHashMap<>();
       core.put("seq", e.get("seq"));
       core.put("ts", e.get("ts"));
@@ -284,23 +302,39 @@ public class SvaConformance {
       core.put("data", e.get("data"));
       core.put("prev", e.get("prev"));
       String hash = asStr(e.get("hash"));
-      if (!sha256(canonical(core)).equals(hash)) return false;
-      if (!pub.equals(asStr(e.get("signer"))) || !ed25519Verify(pub, hash, asStr(e.get("sig")))) return false;
+      if (!sha256(canonical(core)).equals(hash)) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
+      if (!pub.equals(asStr(e.get("signer"))) || !ed25519Verify(pub, hash, asStr(e.get("sig")))) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
 
       Map<String, Object> mIn = new HashMap<>();
       mIn.put("leaf", hash); mIn.put("seq", seq); mIn.put("size", size); mIn.put("root", merkleRoot); mIn.put("path", e.get("proof"));
-      if (!verifyMerkle(mIn)) return false;
+      if (!verifyMerkle(mIn)) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
 
       Map<String, Object> data = asObj(e.get("data"));
-      if (data == null) return false;
-      if (!Objects.equals(missionId, asStr(data.get("id"))) && !Objects.equals(missionId, asStr(data.get("missionId")))) return false;
+      if (data == null) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
+      if (!Objects.equals(missionId, asStr(data.get("id"))) && !Objects.equals(missionId, asStr(data.get("missionId")))) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
       if ("mission.complete".equals(asStr(e.get("kind")))) {
-        if (!Objects.equals(delivHash, asStr(data.get("resultHash")))) return false;
+        if (!Objects.equals(delivHash, asStr(data.get("resultHash")))) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
         hasComplete = true;
       }
     }
-    if (!hasComplete) return false;
-    if (deliverable != null && !sha256(deliverable).equals(delivHash)) return false;
+    if (!hasComplete) return new SvaErOutcome(false, "verification_failed", "not_checked", cs);
+    String delivState = "not_checked";
+    if (deliverable != null) {
+      if (!sha256(deliverable).equals(delivHash)) return new SvaErOutcome(false, "verification_failed", "verification_failed", cs);
+      delivState = "verified";
+    }
+    return new SvaErOutcome(true, "verified", delivState, cs);
+  }
+
+  private static boolean verifySvaEr1(Map<String, Object> in) throws Exception {
+    SvaErOutcome res = evaluateSvaEr1(in);
+    if (!res.ok()) return false;
+    Map<String, Object> exp = asObj(in.get("expectOutcome"));
+    if (exp != null) {
+      if (exp.containsKey("outcome") && !Objects.equals(asStr(exp.get("outcome")), res.outcome())) return false;
+      if (exp.containsKey("deliverable") && !Objects.equals(asStr(exp.get("deliverable")), res.deliverable())) return false;
+      if (exp.containsKey("clock") && !Objects.equals(asStr(exp.get("clock")), res.clock())) return false;
+    }
     return true;
   }
 

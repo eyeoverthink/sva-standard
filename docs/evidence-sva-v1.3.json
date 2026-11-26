@@ -1,0 +1,43 @@
+{
+  "specVersion": "sva-conformance/1.3",
+  "date": "2026-11-26",
+  "repository": "https://github.com/eyeoverthink/sva-standard",
+  "notes": "Renamed working label AER/1 -> SVA-ER/1 (application/sva-er+json) to avoid colliding with IETF draft-zambo-aer1 (AER-1); added explicit named verification outcome vocabulary (deliverable=not_checked when omitted, clock=attested|drift|unattested) and strict RFC 3339 timezone & Gregorian leap-year validation across all 3 runtimes.",
+  "goldenSuite": {
+    "totalVectors": 78,
+    "breakdown": {
+      "jcs": 10,
+      "merkle": 10,
+      "svaer1": 17,
+      "vsc1": 13,
+      "ema1": 14,
+      "wasm_exec": 14
+    }
+  },
+  "triRuntimeResults": [
+    {
+      "runtime": "node:v24.11.1 (node:crypto + V8 WebAssembly)",
+      "dependencies": 0,
+      "passed": 78,
+      "total": 78,
+      "failed": 0,
+      "durationMs": 26.79
+    },
+    {
+      "runtime": "W3C WebCrypto (globalThis.crypto.subtle + WebAssembly, zero node:crypto)",
+      "dependencies": 0,
+      "passed": 78,
+      "total": 78,
+      "failed": 0,
+      "durationMs": 37.25
+    },
+    {
+      "runtime": "java:25.0.1 (single-file pure JDK + fuel-metered i32/f64/memory pure-Java WASM VM)",
+      "dependencies": 0,
+      "passed": 78,
+      "total": 78,
+      "failed": 0,
+      "durationMs": 257.86
+    }
+  ]
+}

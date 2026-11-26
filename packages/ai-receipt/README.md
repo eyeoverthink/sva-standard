@@ -1,9 +1,11 @@
 # `@eyeoverthink/ai-receipt`
 
-Zero-dependency offline **AI Execution Receipt (`AER/1`)** verifier using standard RFC primitives (`Ed25519` RFC 8032, `SHA-256`, `RFC 6962` `0x00`/`0x01` Merkle proofs with odd-node promotion, `RFC 8785` JCS). Works identically in Node.js 22+ and modern browsers via W3C WebCrypto.
+Zero-dependency offline **SVA-ER/1 Execution Receipt** verifier (`spec: "sva-er/1"` and legacy `eyeoverthink.receipt` v1/v2) using standard RFC primitives (`Ed25519` RFC 8032, `SHA-256`, `RFC 6962` `0x00`/`0x01` Merkle proofs with odd-node promotion, `RFC 8785` JCS, `RFC 3339` timestamps). Works identically in Node.js 22+ and modern browsers via W3C WebCrypto, returning a structured outcome vocabulary (`outcome`, `deliverable`, `clock`).
+
+> Distinct from IETF `draft-zambo-aer1` (`AER-1`). See [`specs/SVA-ER-1.md`](https://github.com/eyeoverthink/sva-standard/blob/main/specs/SVA-ER-1.md#7-prior-art--comparison-with-ietf-draft-zambo-aer1-aer-1).
 
 - **Live Zero-Backend Tamper Lab:** https://eyeoverthink.github.io/sva-standard/receipt-lab.html
-- **Wire Spec:** [`specs/AER-1.md`](https://github.com/eyeoverthink/sva-standard/blob/main/specs/AER-1.md)
+- **Wire Spec:** [`specs/SVA-ER-1.md`](https://github.com/eyeoverthink/sva-standard/blob/main/specs/SVA-ER-1.md)
 
 ## Quick Start (< 10 Seconds, 0 GPU)
 

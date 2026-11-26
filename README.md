@@ -1,18 +1,18 @@
-# Sovereign Verified Agency (SVA) Open Standards v1.2
+# Sovereign Verified Agency (SVA) Open Standards v1.3
 
 [![CI: Tri-Runtime Conformance](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml)
 [![Live Zero-Backend Playgrounds](https://github.com/eyeoverthink/sva-standard/actions/workflows/pages.yml/badge.svg)](https://eyeoverthink.github.io/sva-standard/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Zero-dependency wire standards, a **76-vector golden conformance suite**, **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **4-agency local HTTP Immune System demo**, **3 publish-ready zero-dep packages**, and **3 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
+Zero-dependency wire standards (`SVA-ER/1`, `VSC/1`, `EMA/1`), a **78-vector golden conformance suite**, **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **4-agency local HTTP Immune System demo**, **3 published zero-dep npm packages**, and **3 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
 
 > **10-Second Verification (0 GPU, 0 API keys, 0 `npm install`):**
 > - **Live Static Playgrounds ($0 GitHub Pages, 0 external CDNs):** https://eyeoverthink.github.io/sva-standard/
 > - **CLI Conformance & Live 4-Agency Immune Mesh Demo:**
 >   ```bash
->   node conformance/v1/runners/node-verify.mjs       # 76/76 PASSED (~24 ms, node:crypto + V8 WebAssembly)
->   node conformance/v1/runners/webcrypto-verify.mjs  # 76/76 PASSED (~38 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
->   java conformance/v1/runners/SvaConformance.java   # 76/76 PASSED (~268 ms, 1-file pure Java 25 + pure-Java WASM VM)
+>   node conformance/v1/runners/node-verify.mjs       # 78/78 PASSED (~24 ms, node:crypto + V8 WebAssembly)
+>   node conformance/v1/runners/webcrypto-verify.mjs  # 78/78 PASSED (~38 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
+>   java conformance/v1/runners/SvaConformance.java   # 78/78 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
 >   node demos/immune-mesh/run-demo.mjs               # 4 local HTTP agencies, 0 GPU (~60 ms)
 >   npm test                                          # Runs all 3 runtimes + immune demo + packages + playgrounds
 >   ```
@@ -38,7 +38,7 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 
 | Spec | File | What It Proves at an Untrusted Boundary |
 |---|---|---|
-| **`AER/1`** | [specs/AER-1.md](specs/AER-1.md) | **Agent Execution Receipt (`application/aer+json`):** Offline verification of signed execution entries, RFC 6962 `0x00`/`0x01` Merkle inclusion (odd-node promotion — immune to CVE-2012-2459), `entries.length === statement.entries` completeness (cannot strip `IN_CLOUD` or blocked-egress entries), unique `seq`, byte-for-byte deliverable SHA-256, and honest clock status (`attested \| drift \| unattested`). |
+| **`SVA-ER/1`** | [specs/SVA-ER-1.md](specs/SVA-ER-1.md) | **Sovereign Verified Agency Execution Receipt (`application/sva-er+json`):** Offline verification of Ed25519-signed bundled execution entries, RFC 6962 `0x00`/`0x01` odd-node-promotion Merkle inclusion (immune to CVE-2012-2459), `entries.length === statement.entries` completeness, unique `seq`, byte-for-byte deliverable SHA-256, strict RFC 3339 timestamps, and named verification outcomes (`verified \| not_checked \| verification_failed`). Distinct from IETF `draft-zambo-aer1` (`AER-1`). |
 | **`VSC/1` + `vsc-revoke/1`** | [specs/VSC-1.md](specs/VSC-1.md) | **Verifiable Skill Capsule & Zero-Rumor Revocation:** Portable, capability-free pure skill bundles (`wasm-core-1` or `js-pure-es2022`) with fail-closed Ed25519 signatures and `vsc-revoke/1` tombstones carrying signed counterexamples. Receivers ignore rumors and quarantine **only** after locally executing the counterexample and reproducing the fault. |
 | **`EMA/1`** | [specs/EMA-1.md](specs/EMA-1.md) | **Egress Membrane Attestation (`application/ema+json`):** Proves what crossed the network boundary — or proves `ONLY_ON_DEVICE` airgap (`egressBytes: 0`, `networkInterfaces: 0`) — with keyed `HMAC-SHA256` correlation tags and digit-squeezed PII leak auditing. |
 
@@ -46,21 +46,21 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 
 ## 3. Tri-Runtime Conformance Suite (`conformance/v1/`)
 
-**76 deterministic golden vectors** generated from fixed RFC 8032 Ed25519 seeds across 6 suites:
+**78 deterministic golden vectors** generated from fixed RFC 8032 Ed25519 seeds across 6 suites:
 - `jcs` (**10** vectors, including `-0`, `0.0001`, `1e-7`, `1e20`, `1e21` ECMAScript/RFC 8785 edge cases)
 - `merkle` (**10** vectors, including CVE-2012-2459 odd-leaf duplication forgery & `0x00`/`0x01` second-preimage defense)
-- `aer1` (**15** vectors, valid + stripped entries, duplicated `seq`, forged proofs, swapped keys, empty `clock.issuedAt`)
+- `svaer1` (**17** vectors, valid + named outcome checks `deliverable=not_checked` / `clock=unattested|drift` + stripped entries, duplicated `seq`, forged proofs, swapped keys, empty/no-timezone/Feb-29 non-leap RFC 3339 `clock.issuedAt`)
 - `vsc1` (**13** vectors, valid JS/WASM capsules + `vsc-revoke/1` tombstones + missing signatures, bad base64, capability violations)
 - `ema1` (**14** vectors, valid sealed/airgapped crossings + digit-squeezed SSN leaks, `2^32` integer truncation, negative-count cancellation, per-type tag mismatch)
 - `wasm_exec` (**14** vectors): **real compiled WebAssembly Core 1.0 binaries** covering `i32` compute (`discount_cents`, `tax_and_split`, `sum_to_n` loop/branching, divide-by-zero trap), **IEEE-754 `f64`** (`compound_discount`, `harmonic_mean`, `NaN → i32.trunc_f64_s` invalid conversion trap), **linear memory** (active data segment + `i32.load`/`i32.store` sum, `f64.store`/`f64.load` + `memory.grow`/`memory.size`, out-of-bounds `mem_oob` trap), adversarial infinite-loop DoS stopped by deterministic fuel metering, end-to-end `vsc-revoke/1` counterexample fault reproduction, and corrupt-section structural rejection — executed bit-for-bit identically in **Node V8**, **W3C Browser WebAssembly**, and **Single-File Pure Java 25**.
 
-### Measured Results (`docs/evidence-sva-v1.2.json`)
+### Measured Results (`docs/evidence-sva-v1.3.json`)
 
 | Runtime | External Dependencies | Result | Time |
 |---|---:|---:|---:|
-| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **76 / 76** | 24.2 ms |
-| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **76 / 76** | 38.4 ms |
-| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **76 / 76** | 268.5 ms |
+| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **78 / 78** | ~24 ms |
+| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **78 / 78** | ~38 ms |
+| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **78 / 78** | ~270 ms |
 
 ---
 
@@ -104,7 +104,7 @@ Every package is live on **npmjs.org** at `v1.2.0` with strict `files`/`exports`
 ## Honest Limits
 
 - **Scope of Verification:** Currently proven on deterministic numeric, code, and WebAssembly verification; verifying open-ended prose quality remains the next frontier.
-- **Host Trust Boundary:** `AER/1` and `EMA/1` prove cryptographic integrity and completeness of what the signing agency recorded; they cannot prevent a compromised host from lying *before* signing.
+- **Host Trust Boundary:** `SVA-ER/1` and `EMA/1` prove cryptographic integrity and completeness of what the signing agency recorded; they cannot prevent a compromised host from lying *before* signing.
 - **WASM Core 1.0 Profile (`SvaConformance.java`):** The single-file pure-Java fuel-metered WASM VM implements capability-free `i32`, IEEE-754 `f64`, structured control flow (`block`/`loop`/`br`/`br_if`), linear memory (`i32.load`/`i32.store`/`f64.load`/`f64.store`/`memory.size`/`memory.grow`), and active data segments; `i64`, `f32`, indirect function tables, and SIMD are outside v1.2 scope.
 - **Browser WebCrypto:** Ed25519 in `crypto.subtle` requires Chromium 113+, Firefox 129+, or Safari 17+ served over `https://` or `http://localhost` (raw `file://` blocks ES module imports).
 - **Reference Runtime:** Extracted from [eyeoverthink/eyeoverthink-agency](https://github.com/eyeoverthink/eyeoverthink-agency) (whose `master` branch remains untouched on its `contest-freeze` build).

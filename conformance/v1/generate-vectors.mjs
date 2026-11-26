@@ -123,8 +123,8 @@ for (const [id, n, seq] of [
   });
 }
 
-// ==================== 3. AER/1 AGENT EXECUTION RECEIPTS (14 vectors) ====================
-function makeAer({ events, missionId, deliverable, clockStatus = 'attested', key = KEY_A, extraLedgerCount = 0 }) {
+// ==================== 3. SVA-ER/1 EXECUTION RECEIPTS (17 vectors) ====================
+function makeSvaEr({ events, missionId, deliverable, clockStatus = 'attested', key = KEY_A, extraLedgerCount = 0 }) {
   const deliverableSha256 = sha256(deliverable);
   const now = '2026-11-26T00:00:00.000Z';
   let prev = '0'.repeat(64);
@@ -140,7 +140,7 @@ function makeAer({ events, missionId, deliverable, clockStatus = 'attested', key
   const tree = buildTree(rows.map((r) => r.hash));
   const mine = rows.slice(0, events.length);
   const statement = {
-    type: 'aer.statement',
+    type: 'sva-er.statement',
     missionId,
     deliverableSha256,
     merkleRoot: tree.root,
@@ -151,7 +151,7 @@ function makeAer({ events, missionId, deliverable, clockStatus = 'attested', key
   };
   return {
     receipt: {
-      spec: 'aer/1',
+      spec: 'sva-er/1',
       agency: { name: 'SVA Conformance Agency', publicKey: key.pubHex },
       statement,
       statementSig: key.sign(canonical(statement)),
@@ -163,7 +163,7 @@ function makeAer({ events, missionId, deliverable, clockStatus = 'attested', key
 
 const delivBase = '# Verified Report\nTotal: 162.00';
 const delivHash = sha256(delivBase);
-const aerBase = makeAer({
+const erBase = makeSvaEr({
   missionId: 'ms_001',
   deliverable: delivBase,
   extraLedgerCount: 2,
@@ -173,67 +173,87 @@ const aerBase = makeAer({
     { kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_001', score: 0.92, resultHash: delivHash } },
   ],
 });
-const cloneAer = () => JSON.parse(JSON.stringify(aerBase));
+const cloneEr = () => JSON.parse(JSON.stringify(erBase));
 
-// 6 Valid AER/1 vectors
-add('aer-01', 'aer1', 'Valid 3-entry AER/1 receipt in 5-entry ledger with deliverable check', true, cloneAer());
-add('aer-02', 'aer1', 'Valid AER/1 receipt verified without optional deliverable', true, { receipt: cloneAer().receipt, deliverable: null });
-add('aer-03', 'aer1', 'Valid single-entry AER/1 receipt (size=1, empty Merkle path)', true, makeAer({
-  missionId: 'ms_single', deliverable: '42',
-  events: [{ kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_single', score: 1, resultHash: sha256('42') } }],
-}));
-add('aer-04', 'aer1', 'Valid AER/1 receipt with clock.status=unattested', true, makeAer({
-  missionId: 'ms_unatt', deliverable: 'ok', clockStatus: 'unattested',
-  events: [{ kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_unatt', score: 0.9, resultHash: sha256('ok') } }],
-}));
-add('aer-05', 'aer1', 'Valid AER/1 receipt with clock.status=drift and key B', true, makeAer({
-  missionId: 'ms_drift', deliverable: 'drift-ok', clockStatus: 'drift', key: KEY_B,
-  events: [
-    { kind: 'tool.call', actor: 'tycho', data: { missionId: 'ms_drift', tool: 'calc' } },
-    { kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_drift', score: 0.88, resultHash: sha256('drift-ok') } },
-  ],
-}));
-add('aer-06', 'aer1', 'Valid AER/1 receipt with ON_DEVICE + membrane.crossing entries', true, makeAer({
-  missionId: 'ms_hybrid', deliverable: 'hybrid-ok', extraLedgerCount: 1,
-  events: [
-    { kind: 'membrane.crossing', actor: 'membrane', data: { missionId: 'ms_hybrid', total: 2 } },
-    { kind: 'edge.inference', actor: 'edge', data: { missionId: 'ms_hybrid', inferenceSource: 'ON_DEVICE' } },
-    { kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_hybrid', score: 0.95, resultHash: sha256('hybrid-ok') } },
-  ],
-}));
+// 6 Valid SVA-ER/1 vectors (with explicit named outcome expectations)
+add('svaer-01', 'svaer1', 'Valid 3-entry SVA-ER/1 receipt in 5-entry ledger with deliverable check', true, {
+  ...cloneEr(), expectOutcome: { outcome: 'verified', deliverable: 'verified', clock: 'attested' },
+});
+add('svaer-02', 'svaer1', 'Valid SVA-ER/1 receipt verified without optional deliverable reports deliverable=not_checked', true, {
+  receipt: cloneEr().receipt, deliverable: null, expectOutcome: { outcome: 'verified', deliverable: 'not_checked', clock: 'attested' },
+});
+add('svaer-03', 'svaer1', 'Valid single-entry SVA-ER/1 receipt (size=1, empty Merkle path)', true, {
+  ...makeSvaEr({
+    missionId: 'ms_single', deliverable: '42',
+    events: [{ kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_single', score: 1, resultHash: sha256('42') } }],
+  }),
+  expectOutcome: { outcome: 'verified', deliverable: 'verified', clock: 'attested' },
+});
+add('svaer-04', 'svaer1', 'Valid SVA-ER/1 receipt with clock.status=unattested surfaces clock=unattested', true, {
+  ...makeSvaEr({
+    missionId: 'ms_unatt', deliverable: 'ok', clockStatus: 'unattested',
+    events: [{ kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_unatt', score: 0.9, resultHash: sha256('ok') } }],
+  }),
+  expectOutcome: { outcome: 'verified', deliverable: 'verified', clock: 'unattested' },
+});
+add('svaer-05', 'svaer1', 'Valid SVA-ER/1 receipt with clock.status=drift and key B surfaces clock=drift', true, {
+  ...makeSvaEr({
+    missionId: 'ms_drift', deliverable: 'drift-ok', clockStatus: 'drift', key: KEY_B,
+    events: [
+      { kind: 'tool.call', actor: 'tycho', data: { missionId: 'ms_drift', tool: 'calc' } },
+      { kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_drift', score: 0.88, resultHash: sha256('drift-ok') } },
+    ],
+  }),
+  expectOutcome: { outcome: 'verified', deliverable: 'verified', clock: 'drift' },
+});
+add('svaer-06', 'svaer1', 'Valid SVA-ER/1 receipt with ON_DEVICE + membrane.crossing entries', true, {
+  ...makeSvaEr({
+    missionId: 'ms_hybrid', deliverable: 'hybrid-ok', extraLedgerCount: 1,
+    events: [
+      { kind: 'membrane.crossing', actor: 'membrane', data: { missionId: 'ms_hybrid', total: 2 } },
+      { kind: 'edge.inference', actor: 'edge', data: { missionId: 'ms_hybrid', inferenceSource: 'ON_DEVICE' } },
+      { kind: 'mission.complete', actor: 'lumen', data: { id: 'ms_hybrid', score: 0.95, resultHash: sha256('hybrid-ok') } },
+    ],
+  }),
+  expectOutcome: { outcome: 'verified', deliverable: 'verified', clock: 'attested' },
+});
 
-// 8 Invalid AER/1 vectors
+// 11 Invalid SVA-ER/1 vectors (including strict RFC 3339 timezone & leap-year checks)
 {
-  let a = cloneAer(); a.deliverable += ' ';
-  add('aer-07', 'aer1', 'Deliverable modified by 1 trailing space rejected', false, a);
+  let a = cloneEr(); a.deliverable += ' ';
+  add('svaer-07', 'svaer1', 'Deliverable modified by 1 trailing space rejected', false, a);
 
-  a = cloneAer(); a.receipt.entries[2].data.score = 1.0;
-  add('aer-08', 'aer1', 'Inflated critic score inside entry data rejected', false, a);
+  a = cloneEr(); a.receipt.entries[2].data.score = 1.0;
+  add('svaer-08', 'svaer1', 'Inflated critic score inside entry data rejected', false, a);
 
-  a = cloneAer(); a.receipt.entries[0].sig = a.receipt.entries[1].sig;
-  add('aer-09', 'aer1', 'Swapped entry signature rejected', false, a);
+  a = cloneEr(); a.receipt.entries[0].sig = a.receipt.entries[1].sig;
+  add('svaer-09', 'svaer1', 'Swapped entry signature rejected', false, a);
 
-  a = cloneAer(); a.receipt.entries = a.receipt.entries.filter((e) => e.kind !== 'edge.inference');
-  add('aer-10', 'aer1', 'Stripped IN_CLOUD entry rejected (statement.entries completeness)', false, a);
+  a = cloneEr(); a.receipt.entries = a.receipt.entries.filter((e) => e.kind !== 'edge.inference');
+  add('svaer-10', 'svaer1', 'Stripped IN_CLOUD entry rejected (statement.entries completeness)', false, a);
 
-  a = cloneAer(); a.receipt.entries = a.receipt.entries.filter((e) => e.kind !== 'edge.inference'); a.receipt.entries.push(cloneAer().receipt.entries[0]);
-  add('aer-11', 'aer1', 'Stripped + duplicated entry seq rejected (uniqueness)', false, a);
+  a = cloneEr(); a.receipt.entries = a.receipt.entries.filter((e) => e.kind !== 'edge.inference'); a.receipt.entries.push(cloneEr().receipt.entries[0]);
+  add('svaer-11', 'svaer1', 'Stripped + duplicated entry seq rejected (uniqueness)', false, a);
 
-  a = cloneAer(); a.receipt.entries[0].proof[0].hash = 'f'.repeat(64);
-  add('aer-12', 'aer1', 'Forged Merkle proof sibling hash rejected', false, a);
+  a = cloneEr(); a.receipt.entries[0].proof[0].hash = 'f'.repeat(64);
+  add('svaer-12', 'svaer1', 'Forged Merkle proof sibling hash rejected', false, a);
 
-  a = cloneAer(); a.receipt.agency.publicKey = KEY_B.pubHex;
-  add('aer-13', 'aer1', 'Swapped agency public key rejected', false, a);
+  a = cloneEr(); a.receipt.agency.publicKey = KEY_B.pubHex;
+  add('svaer-13', 'svaer1', 'Swapped agency public key rejected', false, a);
 
-  a = cloneAer(); a.receipt.statement.clock.status = 'fabricated';
-  add('aer-14', 'aer1', 'Invalid clock status & broken statementSig rejected', false, a);
+  a = cloneEr(); a.receipt.statement.clock.status = 'fabricated';
+  add('svaer-14', 'svaer1', 'Invalid clock status & broken statementSig rejected', false, a);
 
-  // Red-Team regression: empty clock.issuedAt string signed legitimately must still fail validation
-  {
-    const badClock = cloneAer();
-    badClock.receipt.statement.clock.issuedAt = '';
+  // Red-Team & RFC 3339 timestamp regressions (validly re-signed statements with invalid issuedAt must fail closed)
+  for (const [id, ts, desc] of [
+    ['svaer-15', '', 'Empty string clock.issuedAt rejected even when validly signed'],
+    ['svaer-16', '2026-11-26T00:00:00', 'RFC 3339 clock.issuedAt missing timezone rejected even when validly signed'],
+    ['svaer-17', '2026-02-29T00:00:00Z', 'RFC 3339 impossible non-leap date (2026-02-29) rejected even when validly signed'],
+  ]) {
+    const badClock = cloneEr();
+    badClock.receipt.statement.clock.issuedAt = ts;
     badClock.receipt.statementSig = KEY_A.sign(canonical(badClock.receipt.statement));
-    add('aer-15', 'aer1', 'Empty string clock.issuedAt rejected even when validly signed', false, badClock);
+    add(id, 'svaer1', desc, false, badClock);
   }
 }
 
@@ -669,13 +689,13 @@ add('wasm-14', 'wasm_exec', 'SVA v1.2 f64 NaN -> i32.trunc_f64_s (0.0/0.0) traps
 });
 
 const doc = {
-  specVersion: 'sva-conformance/1.2',
+  specVersion: 'sva-conformance/1.3',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {
     jcs: vectors.filter((v) => v.suite === 'jcs').length,
     merkle: vectors.filter((v) => v.suite === 'merkle').length,
-    aer1: vectors.filter((v) => v.suite === 'aer1').length,
+    svaer1: vectors.filter((v) => v.suite === 'svaer1').length,
     vsc1: vectors.filter((v) => v.suite === 'vsc1').length,
     ema1: vectors.filter((v) => v.suite === 'ema1').length,
     wasm_exec: vectors.filter((v) => v.suite === 'wasm_exec').length,
