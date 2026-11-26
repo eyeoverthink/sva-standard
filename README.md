@@ -80,15 +80,15 @@ Verifies live over HTTP:
 
 ---
 
-## 5. Publish-Ready Zero-Dependency Packages (`packages/`)
+## 5. Published Zero-Dependency npm Packages (`packages/`)
 
-Every package ships with strict `files`/`exports`, Apache-2.0 `LICENSE`, dedicated `README.md`, and 0 runtime dependencies (~9–10.5 kB packed):
+Every package is live on **npmjs.org** at `v1.2.0` with strict `files`/`exports`, Apache-2.0 `LICENSE`, dedicated `README.md`, and **0 runtime dependencies** (~9–10.5 kB packed):
 
-| Package | Purpose | Quick CLI Test (< 10s, 0 GPU) |
+| Package | npm | Quick `npx` Verification (< 5s, 0 GPU, 0 clone) |
 |---|---|---|
-| [`@eyeoverthink/ai-receipt`](packages/ai-receipt/README.md) | Offline Ed25519 + RFC 6962 receipt verification | `node packages/ai-receipt/bin/ai-receipt.js verify <receipt.json> [deliverable.txt]` |
-| [`@eyeoverthink/privacy-membrane`](packages/privacy-membrane/README.md) | Deterministic PII/secret sealing, digit-squeezed egress audit, Sentinel zero-width guard | `node packages/privacy-membrane/bin/privacy-membrane.js seal "SSN 123-45-6789 elena@acme.org"` |
-| [`@eyeoverthink/skill-crystallizer`](packages/skill-crystallizer/README.md) | Zero-LLM binder induction with leave-one-out validation & positional wording gates | `node packages/skill-crystallizer/bin/skill-crystallizer.js` |
+| [`@eyeoverthink/ai-receipt`](packages/ai-receipt/README.md) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/ai-receipt) | `npx @eyeoverthink/ai-receipt verify <receipt.json> [deliverable.txt]` |
+| [`@eyeoverthink/privacy-membrane`](packages/privacy-membrane/README.md) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/privacy-membrane) | `npx @eyeoverthink/privacy-membrane seal "SSN 123-45-6789 elena@acme.org"` |
+| [`@eyeoverthink/skill-crystallizer`](packages/skill-crystallizer/README.md) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/skill-crystallizer) | `npx @eyeoverthink/skill-crystallizer` |
 
 ---
 
