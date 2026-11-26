@@ -21,6 +21,7 @@
         <a href="./index.html">&larr; All Playgrounds</a>
         <a href="./receipt-lab.html">Receipt Tamper Lab</a>
         <a href="./skill-lab.html">Zero-Call Skill Lab</a>
+        <a href="./opeg-lab.html">OPEG Gate Lab</a>
       </nav>
     </header>
 
@@ -75,14 +76,31 @@
       </section>
     </div>
 
+    <div class="card" style="margin-top:18px">
+      <h2>5. Cross-Token Streaming LLM Guard (<code>StreamSealGuard</code>)</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">
+        Streaming LLMs frequently split credentials across chunks (e.g. <code>"sk-"</code> in chunk 1 and <code>"ant-api03-..."</code> in chunk 2).
+        <code>StreamSealGuard</code> holds boundary prefixes so raw secrets, SSNs, and emails never emit mid-stream.
+      </p>
+      <div class="btns" style="margin-bottom:10px">
+        <button class="primary" id="btnStreamDemo">Simulate Split-Token LLM Stream</button>
+      </div>
+      <div id="streamBanner" class="check-row ok" style="margin-bottom:10px">
+        <span class="pill ok">READY</span>
+        <div><div class="name">Click "Simulate Split-Token LLM Stream" to run 4 boundary-split chunks through <code>StreamSealGuard</code>.</div></div>
+      </div>
+      <pre class="box" id="streamOut">// Waiting for stream simulation...</pre>
+    </div>
+
     <footer>
-      Powered directly by <code>playgrounds/lib/membrane-core.js</code> and <code>playgrounds/lib/sentinel.js</code> (zero Node imports, zero network calls).
+      Powered directly by <code>playgrounds/lib/membrane-core.js</code>, <code>playgrounds/lib/sentinel.js</code>, and <code>playgrounds/lib/stream-guard.js</code> (zero Node imports, zero network calls).
     </footer>
   </div>
 
   <script type="module">
     import { detect, SealSession, MembraneLeak } from './lib/membrane-core.js';
     import { scanInjection, redactSecrets, stripHidden } from './lib/sentinel.js';
+    import { StreamSealGuard } from './lib/stream-guard.js';
 
     const PRESETS = {
       clinic: {
@@ -169,6 +187,32 @@
     $('btnHostile').onclick = () => loadPreset('hostile');
     $('btnLeak').onclick = () => { injectLeak = true; render(); };
     $('btnClean').onclick = () => { injectLeak = false; render(); };
+    $('btnStreamDemo').onclick = () => {
+      const chunks = [
+        'Using key sk-',
+        'ant-api03-abcdefghijklmnop1234567890 for SSN 123-',
+        '45-6789 and email elena@',
+        'northstar.org done.',
+      ];
+      const guard = new StreamSealGuard();
+      const trace = chunks.map((chunk, idx) => ({
+        chunkIndex: idx + 1,
+        incomingChunk: chunk,
+        emittedImmediately: guard.push(chunk),
+      }));
+      const flushed = guard.flush();
+      const fullEmitted = trace.map((t) => t.emittedImmediately).join('') + flushed;
+      const audit = guard.session.audit(fullEmitted);
+      $('streamBanner').className = 'check-row ' + (audit.clean ? 'ok' : 'fail');
+      $('streamBanner').innerHTML = `
+        <span class="pill ${audit.clean ? 'ok' : 'fail'}">${audit.clean ? 'STREAM CLEAN' : 'LEAK DETECTED'}</span>
+        <div>
+          <div class="name">Sealed ${guard.getStats().sealsApplied} boundary-split secret(s)/PII across ${chunks.length} chunks (0 raw leaks)</div>
+          <div class="detail">Full emitted stream: ${fullEmitted}</div>
+        </div>
+      `;
+      $('streamOut').textContent = JSON.stringify({ trace, flushed, fullEmitted, audit, stats: guard.getStats() }, null, 2);
+    };
     $('rawInput').oninput = render;
     $('replyInput').oninput = render;
     $('termsInput').oninput = render;

@@ -158,7 +158,7 @@ test('playgrounds: zero external CDN requests and zero node: imports across all 
     assert.ok(!/<script[^>]+src=["']https?:\/\//i.test(html), `${f} must not load external scripts`);
     assert.ok(!/<link[^>]+href=["']https?:\/\//i.test(html), `${f} must not load external CSS`);
   }
-  for (const f of ['receipt-verify.js', 'membrane-core.js', 'sentinel.js', 'binder-induction.js']) {
+  for (const f of ['receipt-verify.js', 'membrane-core.js', 'sentinel.js', 'stream-guard.js', 'binder-induction.js']) {
     const js = fs.readFileSync(path.join(pg, 'lib', f), 'utf8');
     assert.ok(!/from\s+['"]node:/.test(js), `playgrounds/lib/${f} must have zero Node imports`);
   }
