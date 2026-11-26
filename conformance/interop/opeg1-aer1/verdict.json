@@ -1,0 +1,43 @@
+{
+  "spec": "opeg/1",
+  "state": "S4_COMMIT",
+  "receiptFormat": "aer-1",
+  "gate": "pass",
+  "checks": [
+    {
+      "rule": "1 spec/state",
+      "ok": true,
+      "detail": "spec=\"opeg/1\", state=\"S4_COMMIT\""
+    },
+    {
+      "rule": "2 mode",
+      "ok": true,
+      "detail": "mode=\"EXECUTE_AND_RECEIVE\""
+    },
+    {
+      "rule": "3 sourcePriority",
+      "ok": true,
+      "detail": "sourcePriority[0]=\"runtime_receipt\""
+    },
+    {
+      "rule": "4 sanitizer",
+      "ok": true,
+      "detail": "SHA-256(JCS(rSan))=153c596b951df51e67087b98515de359a48894c2c826f9056b0934db47c6ee24, envelope rSanSha256=153c596b951df51e67087b98515de359a48894c2c826f9056b0934db47c6ee24"
+    },
+    {
+      "rule": "5.1 aer-1 receipt (evaluateAer1V04)",
+      "ok": true,
+      "detail": "outcome=verified"
+    },
+    {
+      "rule": "5.2 outputs binding",
+      "ok": true,
+      "detail": "direct payload match: SHA-256(JCS(payload.outputs))=153c596b951df51e67087b98515de359a48894c2c826f9056b0934db47c6ee24"
+    }
+  ],
+  "receiptOutcome": {
+    "outcome": "verified",
+    "clockAttestation": "absent",
+    "issuerKeyBinding": "absent"
+  }
+}
