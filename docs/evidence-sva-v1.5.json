@@ -1,0 +1,40 @@
+{
+  "release": "sva-standard@1.5.0",
+  "date": "2026-11-26",
+  "specs": ["SVA-ER/1", "OPEG/1", "VSC/1 (+ vsc-revoke/1, vsc-vote/1, vsc-veto/1)", "EMA/1", "POR/1", "SVA-GOV/1"],
+  "triRuntimeConformance": {
+    "vectors": 94,
+    "suites": {
+      "jcs": 10,
+      "merkle": 10,
+      "svaer1": 17,
+      "vsc1": 17,
+      "ema1": 14,
+      "wasm_exec": 14,
+      "por1": 4,
+      "opeg1": 4,
+      "gov1": 4
+    },
+    "runtimes": [
+      { "runtime": "node:v24.11.1 (node:crypto + V8 WebAssembly)", "passed": 94, "failed": 0 },
+      { "runtime": "W3C Browser WebCrypto (crypto.subtle + WebAssembly, zero node:crypto)", "passed": 94, "failed": 0 },
+      { "runtime": "Java 25.0.1 LTS (single-file SvaConformance.java + pure-Java i32/f64/memory WASM VM)", "passed": 94, "failed": 0 }
+    ]
+  },
+  "aer1JointInterop": {
+    "aer1Draft": "draft-zambo-aer1-26",
+    "aer1KitVersion": "1.6.1",
+    "aer1EvaluatedSetDigest": "sha256:4ea44dc07125a6f9b7fa472450a30fb56265771cfe87b1772a02b03d1fc166f2",
+    "mergedVectorsLfSha256": "796a5c8783b9927b41682bf35acda74517ccafd9b16fcda5200330bf19dfcf76",
+    "prMerged": "eyeoverthink/sva-standard#1",
+    "cases": 7,
+    "passed": 7,
+    "failed": 0
+  },
+  "privacyMembraneStreamingGuard": {
+    "packageVersion": "1.3.0",
+    "crossTokenSplitSecretCaught": true,
+    "crossTokenSplitSsnCaught": true,
+    "crossTokenSplitEmailCaught": true
+  }
+}

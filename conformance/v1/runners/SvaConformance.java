@@ -80,6 +80,7 @@ public class SvaConformance {
         case "wasm_exec" -> verifyWasmExec(input);
         case "por1" -> verifyPor1(input);
         case "opeg1" -> verifyOpeg1(input);
+        case "gov1" -> verifyGov1(input);
         default -> false;
       };
     } catch (Exception e) {
@@ -502,6 +503,43 @@ public class SvaConformance {
     erIn.put("deliverable", rSanCanon);
     SvaErOutcome er = evaluateSvaEr1(erIn);
     return er.ok() && "verified".equals(er.outcome()) && "verified".equals(er.deliverable());
+  }
+
+  // ==================== SVA-GOV/1 Signed Policy Stone & Task Governance ====================
+  private static boolean verifyGov1(Map<String, Object> in) throws Exception {
+    Map<String, Object> stone = asObj(in.get("stone"));
+    Map<String, Object> task = asObj(in.get("task"));
+    if (stone == null || !"sva-gov-stone/1".equals(asStr(stone.get("spec")))) return false;
+    if (task == null || !"sva-gov-task/1".equals(asStr(task.get("spec")))) return false;
+    String pub = asStr(stone.get("ownerPublicKey"));
+    String sig = asStr(stone.get("sig"));
+    String grantId = asStr(stone.get("grantId"));
+    String issuedAt = asStr(stone.get("issuedAt"));
+    String status = asStr(stone.get("status"));
+    if (pub == null || !HEX64.matcher(pub).matches() || sig == null || !HEX128.matcher(sig).matches()) return false;
+    if (grantId == null || grantId.isEmpty() || !isValidRfc3339(issuedAt)) return false;
+    String h = sha256(hexToBytes(pub)).substring(0, 16);
+    String expectedOwnerId = "fx-" + h.substring(0, 4) + "-" + h.substring(4, 8) + "-" + h.substring(8, 12) + "-" + h.substring(12, 16);
+    if (!expectedOwnerId.equals(asStr(stone.get("ownerId")))) return false;
+    List<Object> allowedObj = asList(stone.get("allowedAgents"));
+    if (allowedObj == null || allowedObj.isEmpty()) return false;
+    Set<String> allowed = new HashSet<>();
+    for (Object o : allowedObj) {
+      String a = asStr(o);
+      if (a == null || a.isEmpty()) return false;
+      allowed.add(a);
+    }
+    Map<String, Object> unsigned = new LinkedHashMap<>(stone);
+    unsigned.remove("sig");
+    if (!ed25519Verify(pub, canonical(unsigned), sig)) return false;
+    if (!"ACTIVE".equals(status) && !"SCOPED".equals(status)) return false;
+    String taskId = asStr(task.get("taskId"));
+    String authRef = asStr(task.get("operatorAuthorizationRef"));
+    String witnessSha = asStr(task.get("witnessReceiptSha256"));
+    String taskIssuedAt = asStr(task.get("issuedAt"));
+    if (taskId == null || taskId.isEmpty() || authRef == null || authRef.isEmpty()) return false;
+    if (witnessSha == null || !HEX64.matcher(witnessSha).matches() || !isValidRfc3339(taskIssuedAt)) return false;
+    return grantId.equals(asStr(task.get("grantId"))) && allowed.contains(asStr(task.get("agent")));
   }
 
   // ==================== EMA/1 Verifier ====================

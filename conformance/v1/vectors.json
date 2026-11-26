@@ -1,7 +1,7 @@
 {
-  "specVersion": "sva-conformance/1.4",
+  "specVersion": "sva-conformance/1.5",
   "generatedWith": "node:v24.11.1",
-  "total": 90,
+  "total": 94,
   "suites": {
     "jcs": 10,
     "merkle": 10,
@@ -10,7 +10,8 @@
     "ema1": 14,
     "wasm_exec": 14,
     "por1": 4,
-    "opeg1": 4
+    "opeg1": 4,
+    "gov1": 4
   },
   "vectors": [
     {
@@ -4397,6 +4398,126 @@
               "proof": []
             }
           ]
+        }
+      }
+    },
+    {
+      "id": "gov-01",
+      "suite": "gov1",
+      "description": "Valid Ed25519-signed ACTIVE policy stone admits enrolled agent task with witness binding",
+      "expectOk": true,
+      "input": {
+        "stone": {
+          "spec": "sva-gov-stone/1",
+          "ownerId": "fx-21fe-31df-a154-a261",
+          "ownerPublicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "grantId": "grant_2026_11_26_scoped",
+          "status": "ACTIVE",
+          "allowedAgents": [
+            "mac-hermes",
+            "assay-01"
+          ],
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "sig": "70d2e7a212bb2308d2f0e927b43c07a06ce9d35d2fd1a0a43004f73fd49c0ccfd049b9805cd817eeffbc8866433aedec4067df27f31cb9572081e64062910e0f"
+        },
+        "task": {
+          "spec": "sva-gov-task/1",
+          "taskId": "task-001",
+          "agent": "mac-hermes",
+          "grantId": "grant_2026_11_26_scoped",
+          "operatorAuthorizationRef": "witness_ledger.jsonl#entry_01",
+          "witnessReceiptSha256": "90227ce5f06a045edb7530fa2517ff2cf7e7a38e49ffef9d50b686f30a6a6b0e",
+          "issuedAt": "2026-11-26T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "id": "gov-02",
+      "suite": "gov1",
+      "description": "Signed REVOKED policy stone kill-switch blocks task admission fail-closed",
+      "expectOk": false,
+      "input": {
+        "stone": {
+          "spec": "sva-gov-stone/1",
+          "ownerId": "fx-21fe-31df-a154-a261",
+          "ownerPublicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "grantId": "grant_2026_11_26_scoped",
+          "status": "REVOKED",
+          "allowedAgents": [
+            "mac-hermes",
+            "assay-01"
+          ],
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "sig": "c99ce828fb4c6155757abde51779b0f4d0364912bfeb3a0fd931e6173299d85f9977c5afe756ef67f3589946952c351dba2c14ed37de0ee18894b84994f5f008"
+        },
+        "task": {
+          "spec": "sva-gov-task/1",
+          "taskId": "task-001",
+          "agent": "mac-hermes",
+          "grantId": "grant_2026_11_26_scoped",
+          "operatorAuthorizationRef": "witness_ledger.jsonl#entry_01",
+          "witnessReceiptSha256": "90227ce5f06a045edb7530fa2517ff2cf7e7a38e49ffef9d50b686f30a6a6b0e",
+          "issuedAt": "2026-11-26T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "id": "gov-03",
+      "suite": "gov1",
+      "description": "Unenrolled agent not listed in stone.allowedAgents rejected",
+      "expectOk": false,
+      "input": {
+        "stone": {
+          "spec": "sva-gov-stone/1",
+          "ownerId": "fx-21fe-31df-a154-a261",
+          "ownerPublicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "grantId": "grant_2026_11_26_scoped",
+          "status": "ACTIVE",
+          "allowedAgents": [
+            "mac-hermes",
+            "assay-01"
+          ],
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "sig": "70d2e7a212bb2308d2f0e927b43c07a06ce9d35d2fd1a0a43004f73fd49c0ccfd049b9805cd817eeffbc8866433aedec4067df27f31cb9572081e64062910e0f"
+        },
+        "task": {
+          "spec": "sva-gov-task/1",
+          "taskId": "task-001",
+          "agent": "rogue-node",
+          "grantId": "grant_2026_11_26_scoped",
+          "operatorAuthorizationRef": "witness_ledger.jsonl#entry_01",
+          "witnessReceiptSha256": "90227ce5f06a045edb7530fa2517ff2cf7e7a38e49ffef9d50b686f30a6a6b0e",
+          "issuedAt": "2026-11-26T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "id": "gov-04",
+      "suite": "gov1",
+      "description": "Unsigned status flip (PAUSED -> ACTIVE) rejected by Ed25519 stone signature check",
+      "expectOk": false,
+      "input": {
+        "stone": {
+          "spec": "sva-gov-stone/1",
+          "ownerId": "fx-21fe-31df-a154-a261",
+          "ownerPublicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "grantId": "grant_2026_11_26_scoped",
+          "status": "ACTIVE",
+          "allowedAgents": [
+            "mac-hermes",
+            "assay-01"
+          ],
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "sig": "88c1e8e5ce78014ff33e099545a6e38340d1043831dd2897054ceb687e337cc735ba539560ab9175a338db40c5b78c3e4e22b53b5854f3615965782af14e1300"
+        },
+        "task": {
+          "spec": "sva-gov-task/1",
+          "taskId": "task-001",
+          "agent": "mac-hermes",
+          "grantId": "grant_2026_11_26_scoped",
+          "operatorAuthorizationRef": "witness_ledger.jsonl#entry_01",
+          "witnessReceiptSha256": "90227ce5f06a045edb7530fa2517ff2cf7e7a38e49ffef9d50b686f30a6a6b0e",
+          "issuedAt": "2026-11-26T00:00:00.000Z"
         }
       }
     }

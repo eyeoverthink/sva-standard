@@ -808,8 +808,40 @@ function makeOpegCommit({ mode = 'EXECUTE_AND_RECEIVE', rSan = { experiment: 'EP
   add('opeg-04', 'opeg1', 'Forged SVA-ER/1 receipt inside OPEG/1 commit rejected', false, opForgedReceipt);
 }
 
+// ==================== 9. SVA-GOV/1 SIGNED POLICY STONE & TASK ADMISSION (4 vectors) ====================
+function makeGovBundle({ status = 'ACTIVE', agent = 'mac-hermes', allowedAgents = ['mac-hermes', 'assay-01'], key = KEY_A } = {}) {
+  const stoneBody = {
+    spec: 'sva-gov-stone/1',
+    ownerId: agentIdOf(key.pubHex),
+    ownerPublicKey: key.pubHex,
+    grantId: 'grant_2026_11_26_scoped',
+    status,
+    allowedAgents,
+    issuedAt: '2026-11-26T00:00:00.000Z',
+  };
+  const stone = { ...stoneBody, sig: key.sign(canonical(stoneBody)) };
+  const task = {
+    spec: 'sva-gov-task/1',
+    taskId: 'task-001',
+    agent,
+    grantId: 'grant_2026_11_26_scoped',
+    operatorAuthorizationRef: 'witness_ledger.jsonl#entry_01',
+    witnessReceiptSha256: sha256('witness-entry-01'),
+    issuedAt: '2026-11-26T00:00:00.000Z',
+  };
+  return { stone, task };
+}
+{
+  add('gov-01', 'gov1', 'Valid Ed25519-signed ACTIVE policy stone admits enrolled agent task with witness binding', true, makeGovBundle());
+  add('gov-02', 'gov1', 'Signed REVOKED policy stone kill-switch blocks task admission fail-closed', false, makeGovBundle({ status: 'REVOKED' }));
+  add('gov-03', 'gov1', 'Unenrolled agent not listed in stone.allowedAgents rejected', false, makeGovBundle({ agent: 'rogue-node' }));
+  const tampered = makeGovBundle({ status: 'PAUSED' });
+  tampered.stone.status = 'ACTIVE'; // unsigned flip from PAUSED -> ACTIVE
+  add('gov-04', 'gov1', 'Unsigned status flip (PAUSED -> ACTIVE) rejected by Ed25519 stone signature check', false, tampered);
+}
+
 const doc = {
-  specVersion: 'sva-conformance/1.4',
+  specVersion: 'sva-conformance/1.5',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {
@@ -821,6 +853,7 @@ const doc = {
     wasm_exec: vectors.filter((v) => v.suite === 'wasm_exec').length,
     por1: vectors.filter((v) => v.suite === 'por1').length,
     opeg1: vectors.filter((v) => v.suite === 'opeg1').length,
+    gov1: vectors.filter((v) => v.suite === 'gov1').length,
   },
   vectors,
 };

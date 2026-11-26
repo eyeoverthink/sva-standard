@@ -1,18 +1,18 @@
-# Sovereign Verified Agency (SVA) Open Standards v1.4
+# Sovereign Verified Agency (SVA) Open Standards v1.5
 
 [![CI: Tri-Runtime Conformance](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml)
 [![Live Zero-Backend Playgrounds](https://github.com/eyeoverthink/sva-standard/actions/workflows/pages.yml/badge.svg)](https://eyeoverthink.github.io/sva-standard/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Zero-dependency open wire standards (**`SVA-ER/1`**, **`VSC/1`**, **`EMA/1`**, **`OPEG/1`**, **`POR/1`**), a **90-vector golden conformance suite**, a **7-case bidirectional `AER-1` ↔ `SVA-ER/1` interop harness** (pinned to IETF `draft-zambo-aer1-26`, kit `1.6.1`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 published zero-dep npm packages**, and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
+Zero-dependency open wire standards (**`SVA-ER/1`**, **`OPEG/1`**, **`VSC/1`**, **`EMA/1`**, **`POR/1`**, **`SVA-GOV/1`**), a **94-vector golden conformance suite**, a **7-case bidirectional `AER-1` ↔ `SVA-ER/1` interop harness** (co-authored with `@zambodotdev`, pinned to IETF `draft-zambo-aer1-26`, kit `1.6.1`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 zero-dep npm packages** (including cross-token streaming LLM secret redaction), and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
 
 > **10-Second Verification (0 GPU, 0 API keys, 0 `npm install`):**
 > - **Live Static Playgrounds ($0 GitHub Pages, 0 external CDNs):** https://eyeoverthink.github.io/sva-standard/
 > - **CLI Conformance, Joint AER-1 Interop & Live 4-Agency Mesh Demo:**
 >   ```bash
->   node conformance/v1/runners/node-verify.mjs           # 90/90 PASSED (~29 ms, node:crypto + V8 WebAssembly)
->   node conformance/v1/runners/webcrypto-verify.mjs      # 90/90 PASSED (~51 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
->   java conformance/v1/runners/SvaConformance.java       # 90/90 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
+>   node conformance/v1/runners/node-verify.mjs           # 94/94 PASSED (~28 ms, node:crypto + V8 WebAssembly)
+>   node conformance/v1/runners/webcrypto-verify.mjs      # 94/94 PASSED (~52 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
+>   java conformance/v1/runners/SvaConformance.java       # 94/94 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
 >   node conformance/interop/aer1-svaer1/verify-interop.mjs  # 7/7 PASSED (draft-zambo-aer1-26 kit 1.6.1 <-> SVA-ER/1)
 >   node demos/immune-mesh/run-demo.mjs                   # 4 local HTTP agencies, 5 scenarios, 0 GPU (~56 ms)
 >   npm test                                              # Runs all 3 runtimes + interop + mesh demo + packages + playgrounds
@@ -45,12 +45,13 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 | **`VSC/1` + `vsc-revoke/1` + `vsc-vote/1` + `vsc-veto/1`** | [specs/VSC-1.md](specs/VSC-1.md) | **Verifiable Skill Capsule, Zero-Rumor Revocation & Signed WASM Quorum:** Capability-free pure skill bundles (`wasm-core-1` / `js-pure-es2022`), zero-rumor counterexample tombstones, **signed WASM test-result quorum voting** (*"a vote is a signed test result, not an opinion"*), and human owner veto. |
 | **`EMA/1`** | [specs/EMA-1.md](specs/EMA-1.md) | **Egress Membrane Attestation (`application/ema+json`):** Proves what crossed the network boundary — or proves `ONLY_ON_DEVICE` airgap (`egressBytes: 0`, `networkInterfaces: 0`) — with keyed `HMAC-SHA256` correlation tags and digit-squeezed PII leak auditing. |
 | **`POR/1`** | [specs/POR-1.md](specs/POR-1.md) | **Proof-of-Reality Local-Hash Vault (`application/por+json`):** Privacy-preserving multi-modal witness vault built on `SVA-ER/1`'s exact RFC 6962 `0x00`/`0x01` odd-carry Merkle + Ed25519 primitives, ensuring raw biometrics never leave the device (`fx-xxxx-...` key-derived identity). |
+| **`SVA-GOV/1`** | [specs/SVA-GOV-1.md](specs/SVA-GOV-1.md) | **Signed Operator Autonomy Stone & Task Witness Governance (`application/sva-gov+json`):** Ed25519-signed policy stone (`ACTIVE \| SCOPED \| PAUSED \| REVOKED`) acting as a fail-closed autonomy kill-switch + per-task `operatorAuthorizationRef` & `witnessReceiptSha256` binding. |
 
 ---
 
 ## 3. Tri-Runtime Conformance Suite (`conformance/v1/`) & Joint `AER-1` Interop (`conformance/interop/`)
 
-### 90 Golden Vectors Across 8 Suites (`conformance/v1/vectors.json`)
+### 94 Golden Vectors Across 9 Suites (`conformance/v1/vectors.json`)
 - `jcs` (**10** vectors, RFC 8785 number & UTF-16 sorting edge cases)
 - `merkle` (**10** vectors, RFC 6962 odd-node promotion & CVE-2012-2459 defense)
 - `svaer1` (**17** vectors, named outcomes `deliverable=not_checked`, `clock=attested|drift|unattested`, strict RFC 3339 timezone & leap-year regressions)
@@ -59,6 +60,7 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 - `wasm_exec` (**14** vectors, real compiled WebAssembly Core 1.0 binaries — `i32`, IEEE-754 `f64`, linear memory + active data segments, fuel-metered infinite-loop DoS defense, live counterexample reproduction)
 - `por1` (**4** vectors, 7-leaf local-hash vault + inclusion proof, 1-byte tamper detection, raw unhashed payload refusal)
 - `opeg1` (**4** vectors, valid `EXECUTE_AND_RECEIVE` commit bound to `SVA-ER/1`, `DIRECT_INFERENCE` refusal, post-signing `R_san` tamper detection)
+- `gov1` (**4** vectors, valid signed `ACTIVE` policy stone + task binding, signed `REVOKED` kill-switch halt, unenrolled agent rejection, unsigned `PAUSED → ACTIVE` tamper rejection)
 
 ### Joint `AER-1` (`draft-zambo-aer1-26`, kit `1.6.1`) ↔ `SVA-ER/1` Interop Harness (`conformance/interop/aer1-svaer1/`)
 Bidirectional clock-attestation and key-binding test vectors pinned against Brennan Zambo's `kit 1.6.1` evaluated corpus (`sha256:4ea44dc07125a6f9b7fa472450a30fb56265771cfe87b1772a02b03d1fc166f2`):
@@ -72,14 +74,14 @@ Bidirectional clock-attestation and key-binding test vectors pinned against Bren
 
 Every `AER-1` v0.4 counterpart record in `vectors.json` was verified directly against `zambo.dev/aer1/corpus/v1.6.0/base/conformance.cjs`.
 
-### Measured Results (`docs/evidence-sva-v1.4.json`)
+### Measured Results (`docs/evidence-sva-v1.5.json`)
 
 | Runtime | External Dependencies | Result | Time |
 |---|---:|---:|---:|
-| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **90 / 90** | ~29 ms |
-| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **90 / 90** | ~51 ms |
-| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **90 / 90** | ~270 ms |
-| Joint `AER-1` ↔ `SVA-ER/1` Interop (`verify-interop.mjs`) | 0 | **7 / 7** | ~5 ms |
+| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **94 / 94** | ~28 ms |
+| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **94 / 94** | ~52 ms |
+| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **94 / 94** | ~270 ms |
+| Joint `AER-1` ↔ `SVA-ER/1` Interop (`verify-interop.mjs`, PR #1 merged) | 0 | **7 / 7** | ~5 ms |
 
 ---
 
@@ -105,10 +107,12 @@ Verifies live over HTTP:
 | Artifact | Link | Quick Verification (< 5s, 0 GPU) |
 |---|---|---|
 | [`@eyeoverthink/ai-receipt`](packages/ai-receipt/README.md) (`v1.3.0`) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/ai-receipt) | `npx @eyeoverthink/ai-receipt verify <receipt.json> [deliverable.txt]` |
-| [`@eyeoverthink/privacy-membrane`](packages/privacy-membrane/README.md) (`v1.2.0`) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/privacy-membrane) | `npx @eyeoverthink/privacy-membrane seal "SSN 123-45-6789 elena@acme.org"` |
+| [`@eyeoverthink/privacy-membrane`](packages/privacy-membrane/README.md) (`v1.3.0`) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/privacy-membrane) | `npx @eyeoverthink/privacy-membrane seal "SSN 123-45-6789 elena@acme.org"` · `stream-demo` |
 | [`@eyeoverthink/skill-crystallizer`](packages/skill-crystallizer/README.md) (`v1.2.0`) | [npmjs](https://www.npmjs.com/package/@eyeoverthink/skill-crystallizer) | `npx @eyeoverthink/skill-crystallizer` |
 | **`eyeoverthink/singlefile-gpt`** (`v1.0.0`) | [GitHub](https://github.com/eyeoverthink/singlefile-gpt) | `java SingleFileGPT.java selftest` (79/79 pass, 0 deps) |
 | **`eyeoverthink/fmp1-mesh`** (`v1.0.0`) | [GitHub](https://github.com/eyeoverthink/fmp1-mesh) | `fmp1 sim` + `fmp1 export-sva` (off-grid UDP/LoRa mesh exporting `SVA-ER/1` receipts) |
+| **`eyeoverthink/fraymus-receipts`** (`v1.0.0`) | [GitHub](https://github.com/eyeoverthink/fraymus-receipts) | `pytest tests -q` (WASM custom-section `FRYM` v1 spec + 6 honest empirical benchmarks) |
+| **`eyeoverthink/babel-engine`** | [GitHub](https://github.com/eyeoverthink/babel-engine) | Pre-registered 200-seed Generalist-vs-Dyad empirical ablation (publishes negative results) |
 
 ---
 

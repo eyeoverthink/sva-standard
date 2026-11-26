@@ -535,6 +535,25 @@ async function verifyOpeg1(doc) {
   return er.ok === true && er.outcome === 'verified' && er.deliverable === 'verified';
 }
 
+async function verifyGov1({ stone, task }) {
+  if (!stone || stone.spec !== 'sva-gov-stone/1' || !task || task.spec !== 'sva-gov-task/1') return false;
+  if (!HEX64.test(String(stone.ownerPublicKey || '')) || !HEX128.test(String(stone.sig || ''))) return false;
+  if (typeof stone.grantId !== 'string' || !stone.grantId.length || !isValidRfc3339(stone.issuedAt)) return false;
+  const h = (await sha256Bytes(fromHex(stone.ownerPublicKey))).slice(0, 16);
+  const expectedOwnerId = `fx-${h.slice(0, 4)}-${h.slice(4, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}`;
+  if (stone.ownerId !== expectedOwnerId) return false;
+  if (!Array.isArray(stone.allowedAgents) || stone.allowedAgents.length === 0) return false;
+  if (!stone.allowedAgents.every((a) => typeof a === 'string' && a.length > 0)) return false;
+  const { sig, ...unsigned } = stone;
+  if (!await ed25519Verify(stone.ownerPublicKey, canonical(unsigned), sig)) return false;
+  if (!['ACTIVE', 'SCOPED'].includes(stone.status)) return false;
+  if (typeof task.taskId !== 'string' || !task.taskId.length) return false;
+  if (typeof task.operatorAuthorizationRef !== 'string' || !task.operatorAuthorizationRef.length) return false;
+  if (!HEX64.test(String(task.witnessReceiptSha256 || '')) || !isValidRfc3339(task.issuedAt)) return false;
+  if (task.grantId !== stone.grantId || !stone.allowedAgents.includes(task.agent)) return false;
+  return true;
+}
+
 export async function verifyVector(v) {
   switch (v.suite) {
     case 'jcs': {
@@ -548,6 +567,7 @@ export async function verifyVector(v) {
     case 'wasm_exec': return verifyWasmExec(v.input);
     case 'por1': return verifyPor1(v.input);
     case 'opeg1': return verifyOpeg1(v.input);
+    case 'gov1': return verifyGov1(v.input);
     default: return false;
   }
 }

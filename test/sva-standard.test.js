@@ -11,7 +11,7 @@ import { runConformanceDoc } from '../conformance/v1/runners/webcrypto-verify.mj
 import { runInteropVerification } from '../conformance/interop/aer1-svaer1/verify-interop.mjs';
 import { runImmuneMeshDemo } from '../demos/immune-mesh/run-demo.mjs';
 import { verifyReceipt } from '../packages/ai-receipt/receipt-verify.js';
-import { detect, SealSession, scanInjection } from '../packages/privacy-membrane/index.js';
+import { detect, SealSession, scanInjection, StreamSealGuard } from '../packages/privacy-membrane/index.js';
 import { induce, leaveOneOut, applySpec, novelWording } from '../packages/skill-crystallizer/binder-induction.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,43 +19,44 @@ const VEC = path.join(ROOT, 'conformance', 'v1', 'vectors.json');
 const JAVA_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'SvaConformance.java');
 const WEBCRYPTO_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'webcrypto-verify.mjs');
 
-test('specs and 90-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
-  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md', 'OPEG-1.md', 'POR-1.md']) {
+test('specs and 94-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
+  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md', 'OPEG-1.md', 'POR-1.md', 'SVA-GOV-1.md']) {
     assert.ok(fs.existsSync(path.join(ROOT, 'specs', spec)), `missing specs/${spec}`);
   }
   assert.ok(!fs.existsSync(path.join(ROOT, 'specs', 'AER-1.md')), 'legacy colliding specs/AER-1.md must be removed');
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
-  assert.equal(doc.total, 90);
+  assert.equal(doc.total, 94);
   assert.equal(doc.suites.svaer1, 17);
   assert.equal(doc.suites.vsc1, 17);
   assert.equal(doc.suites.wasm_exec, 14);
   assert.equal(doc.suites.por1, 4);
   assert.equal(doc.suites.opeg1, 4);
+  assert.equal(doc.suites.gov1, 4);
   const wcSrc = fs.readFileSync(WEBCRYPTO_RUNNER, 'utf8');
   assert.ok(!/(?:from|import\s*\(|require\s*\()\s*['"]node:crypto['"]/.test(wcSrc));
 });
 
-test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 90/90 golden vectors', () => {
+test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 94/94 golden vectors', () => {
   const res = runConformance(VEC);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 90);
+  assert.equal(res.passed, 94);
 });
 
-test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 90/90 golden vectors', async () => {
+test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 94/94 golden vectors', async () => {
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
   const res = await runConformanceDoc(doc);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 90);
+  assert.equal(res.passed, 94);
 });
 
-test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 90/90 golden vectors', (t) => {
+test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 94/94 golden vectors', (t) => {
   let javaOk = true;
   try { execFileSync('java', ['-version'], { stdio: 'pipe' }); } catch { javaOk = false; }
   if (!javaOk) { t.skip('java not installed'); return; }
   const out = execFileSync('java', [JAVA_RUNNER, VEC], { encoding: 'utf8' });
   const res = JSON.parse(out.trim());
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 90);
+  assert.equal(res.passed, 94);
 });
 
 test('Joint AER-1 (draft-zambo-aer1-26, kit 1.6.1) <-> SVA-ER/1 clock & key-binding interop harness passes 7/7', () => {
@@ -104,6 +105,18 @@ test('standalone packages: publish manifests, APIs & CLIs for ai-receipt, privac
   const sealCli = JSON.parse(execFileSync(process.execPath, [path.join(ROOT, 'packages', 'privacy-membrane', 'bin', 'privacy-membrane.js'), 'seal', text], { encoding: 'utf8' }));
   assert.equal(sealCli.audit.clean, true);
   assert.ok(sealCli.total >= 3);
+
+  // 1b. privacy-membrane v1.3 StreamSealGuard (cross-token split secret + SSN + email sealing + Ollama NDJSON)
+  const sg = new StreamSealGuard();
+  const sChunks = ['Key sk-', 'ant-api03-abcdefghijklmnop1234567890 SSN 123-', '45-6789 mail elena@', 'northstar.org ok.'];
+  const sOut = sChunks.map((c) => sg.push(c)).join('') + sg.flush();
+  assert.equal(sg.session.audit(sOut).clean, true);
+  assert.ok(!sOut.includes('sk-ant-api03'), 'split API key leaked in stream');
+  assert.ok(!sOut.includes('123-45-6789'), 'split SSN leaked in stream');
+  assert.ok(!sOut.includes('elena@northstar.org'), 'split email leaked in stream');
+  const streamCli = JSON.parse(execFileSync(process.execPath, [path.join(ROOT, 'packages', 'privacy-membrane', 'bin', 'privacy-membrane.js'), 'stream-demo'], { encoding: 'utf8' }));
+  assert.equal(streamCli.audit.clean, true);
+  assert.ok(streamCli.stats.sealsApplied >= 3);
 
   // 2. skill-crystallizer API + CLI
   const skillCli = JSON.parse(execFileSync(process.execPath, [path.join(ROOT, 'packages', 'skill-crystallizer', 'bin', 'skill-crystallizer.js')], { encoding: 'utf8' }));

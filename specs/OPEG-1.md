@@ -52,7 +52,9 @@ A conforming verifier MUST reject unless ALL checks succeed:
 2. `mode === "EXECUTE_AND_RECEIVE"` (any `"DIRECT_INFERENCE"` or unknown mode MUST be rejected).
 3. `sourcePriority` is an array beginning with `"runtime_receipt"`.
 4. `sanitizer` is an object with `status === "SUCCESS"`, non-null object `rSan`, and `rSanSha256 === SHA-256(UTF8(JCS(rSan)))`.
-5. `receipt` is a valid **`SVA-ER/1`** receipt whose `evaluateSvaEr1({ receipt, deliverable: JCS(rSan) })` returns `ok === true`, `outcome === "verified"`, and `deliverable === "verified"`.
+5. `receipt` is verified according to `receiptFormat` (default `"sva-er/1"`):
+   - **`"sva-er/1"` (default):** `evaluateSvaEr1({ receipt, deliverable: JCS(rSan) })` returns `ok === true`, `outcome === "verified"`, and `deliverable === "verified"`.
+   - **`"aer-1"` (format-agnostic interop profile for IETF `draft-zambo-aer1`):** `receipt` passes `AER-1` v0.4 core + Section 3.1 `metadata_hash` + `issuer_claims` binding verification, AND the decoded `canonical_bytes` payload binds `sanitizer.rSanSha256` (e.g. via `outputs` digest equality), with `clockAttestation: "absent"` and `issuerKeyBinding: "absent"` preserved explicitly rather than collapsed.
 
 ## 5. Honest Limits
 
