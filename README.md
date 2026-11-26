@@ -1,21 +1,22 @@
-# Sovereign Verified Agency (SVA) Open Standards v1.5
+# Sovereign Verified Agency (SVA) Open Standards v1.6
 
 [![CI: Tri-Runtime Conformance](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/eyeoverthink/sva-standard/actions/workflows/ci.yml)
 [![Live Zero-Backend Playgrounds](https://github.com/eyeoverthink/sva-standard/actions/workflows/pages.yml/badge.svg)](https://eyeoverthink.github.io/sva-standard/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Zero-dependency open wire standards (**`SVA-ER/1`**, **`OPEG/1`**, **`VSC/1`**, **`EMA/1`**, **`POR/1`**, **`SVA-GOV/1`**), a **94-vector golden conformance suite**, a **7-case bidirectional `AER-1` ↔ `SVA-ER/1` interop harness** (co-authored with `@zambodotdev`, pinned to IETF `draft-zambo-aer1-26`, kit `1.6.1`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 zero-dep npm packages** (including cross-token streaming LLM secret redaction), and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
+Zero-dependency open wire standards (**`SVA-ER/1`**, **`OPEG/1`**, **`VSC/1`**, **`EMA/1`**, **`POR/1`**, **`SVA-GOV/1`**), a **96-vector golden conformance suite**, **two co-authored `AER-1` ↔ `SVA` interop harnesses** (PR #1: 7-case `aer1-svaer1` + PR #2: `opeg1-aer1` wiring a real served `AER-1` v0.4 receipt through `OPEG/1` `S4_COMMIT`), **3 independent reference runtimes** (**Node.js V8**, **W3C Browser WebCrypto**, and **Single-File Pure Java 25 with a built-in fuel-metered `i32`/`f64`/linear-memory WebAssembly VM**), a **5-scenario 4-agency local HTTP Immune & Quorum Mesh demo**, **3 published zero-dep npm packages**, and **4 live zero-backend browser playgrounds** for verifiable, local-first AI agents.
 
 > **10-Second Verification (0 GPU, 0 API keys, 0 `npm install`):**
 > - **Live Static Playgrounds ($0 GitHub Pages, 0 external CDNs):** https://eyeoverthink.github.io/sva-standard/
 > - **CLI Conformance, Joint AER-1 Interop & Live 4-Agency Mesh Demo:**
 >   ```bash
->   node conformance/v1/runners/node-verify.mjs           # 94/94 PASSED (~28 ms, node:crypto + V8 WebAssembly)
->   node conformance/v1/runners/webcrypto-verify.mjs      # 94/94 PASSED (~52 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
->   java conformance/v1/runners/SvaConformance.java       # 94/94 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
->   node conformance/interop/aer1-svaer1/verify-interop.mjs  # 7/7 PASSED (draft-zambo-aer1-26 kit 1.6.1 <-> SVA-ER/1)
->   node demos/immune-mesh/run-demo.mjs                   # 4 local HTTP agencies, 5 scenarios, 0 GPU (~56 ms)
->   npm test                                              # Runs all 3 runtimes + interop + mesh demo + packages + playgrounds
+>   node conformance/v1/runners/node-verify.mjs                # 96/96 PASSED (~28 ms, node:crypto + V8 WebAssembly)
+>   node conformance/v1/runners/webcrypto-verify.mjs           # 96/96 PASSED (~52 ms, W3C WebCrypto + WebAssembly, 0 node:crypto)
+>   java conformance/v1/runners/SvaConformance.java            # 96/96 PASSED (~270 ms, 1-file pure Java 25 + pure-Java WASM VM)
+>   node conformance/interop/aer1-svaer1/verify-interop.mjs    # 7/7 PASSED (PR #1: draft-zambo-aer1-26 kit 1.6.1 <-> SVA-ER/1)
+>   node conformance/interop/opeg1-aer1/verify-opeg1-aer1.mjs  # PASS (PR #2: served AER-1 real-04.json through OPEG/1 S4_COMMIT)
+>   node demos/immune-mesh/run-demo.mjs                        # 4 local HTTP agencies, 5 scenarios, 0 GPU (~56 ms)
+>   npm test                                                   # Runs all 3 runtimes + both interop harnesses + mesh demo + packages
 >   ```
 
 ---
@@ -51,7 +52,7 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 
 ## 3. Tri-Runtime Conformance Suite (`conformance/v1/`) & Joint `AER-1` Interop (`conformance/interop/`)
 
-### 94 Golden Vectors Across 9 Suites (`conformance/v1/vectors.json`)
+### 96 Golden Vectors Across 9 Suites (`conformance/v1/vectors.json`)
 - `jcs` (**10** vectors, RFC 8785 number & UTF-16 sorting edge cases)
 - `merkle` (**10** vectors, RFC 6962 odd-node promotion & CVE-2012-2459 defense)
 - `svaer1` (**17** vectors, named outcomes `deliverable=not_checked`, `clock=attested|drift|unattested`, strict RFC 3339 timezone & leap-year regressions)
@@ -59,7 +60,7 @@ Every wire format uses **only standard RFC primitives** (RFC 8032 `Ed25519`, FIP
 - `ema1` (**14** vectors, sealed/airgapped crossings, digit-squeezed SSN leaks, `2^32` truncation, negative-count cancellation)
 - `wasm_exec` (**14** vectors, real compiled WebAssembly Core 1.0 binaries — `i32`, IEEE-754 `f64`, linear memory + active data segments, fuel-metered infinite-loop DoS defense, live counterexample reproduction)
 - `por1` (**4** vectors, 7-leaf local-hash vault + inclusion proof, 1-byte tamper detection, raw unhashed payload refusal)
-- `opeg1` (**4** vectors, valid `EXECUTE_AND_RECEIVE` commit bound to `SVA-ER/1`, `DIRECT_INFERENCE` refusal, post-signing `R_san` tamper detection)
+- `opeg1` (**6** vectors, `EXECUTE_AND_RECEIVE` with both `SVA-ER/1` and served `AER-1` v0.4 `real-04.json`, `DIRECT_INFERENCE` refusal, post-signing `R_san` tamper detection)
 - `gov1` (**4** vectors, valid signed `ACTIVE` policy stone + task binding, signed `REVOKED` kill-switch halt, unenrolled agent rejection, unsigned `PAUSED → ACTIVE` tamper rejection)
 
 ### Joint `AER-1` (`draft-zambo-aer1-26`, kit `1.6.1`) ↔ `SVA-ER/1` Interop Harness (`conformance/interop/aer1-svaer1/`)
@@ -74,14 +75,15 @@ Bidirectional clock-attestation and key-binding test vectors pinned against Bren
 
 Every `AER-1` v0.4 counterpart record in `vectors.json` was verified directly against `zambo.dev/aer1/corpus/v1.6.0/base/conformance.cjs`.
 
-### Measured Results (`docs/evidence-sva-v1.5.json`)
+### Measured Results (`docs/evidence-sva-v1.6.json`)
 
 | Runtime | External Dependencies | Result | Time |
 |---|---:|---:|---:|
-| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **94 / 94** | ~28 ms |
-| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **94 / 94** | ~52 ms |
-| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **94 / 94** | ~270 ms |
+| Node.js `v24.11.1` (`node:crypto` + V8 `WebAssembly`) | 0 | **96 / 96** | ~28 ms |
+| W3C Browser WebCrypto (`crypto.subtle` + `WebAssembly`) | 0 | **96 / 96** | ~52 ms |
+| Java `25.0.1 LTS` (`SvaConformance.java`, single file + pure-Java `i32`/`f64`/memory WASM VM) | 0 | **96 / 96** | ~270 ms |
 | Joint `AER-1` ↔ `SVA-ER/1` Interop (`verify-interop.mjs`, PR #1 merged) | 0 | **7 / 7** | ~5 ms |
+| Joint `OPEG/1` + `AER-1` v0.4 Gate (`verify-opeg1-aer1.mjs`, PR #2 merged) | 0 | **PASS + negative block** | ~4 ms |
 
 ---
 

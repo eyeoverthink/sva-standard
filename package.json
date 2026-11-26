@@ -1,8 +1,8 @@
 {
   "name": "sva-standard",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
-  "description": "Sovereign Verified Agency (SVA) Open Standards: SVA-ER/1, VSC/1, EMA/1, OPEG/1, POR/1, SVA-GOV/1 — 94-vector tri-runtime conformance + 7-case AER-1 joint interop harness & offline browser playgrounds",
+  "description": "Sovereign Verified Agency (SVA) Open Standards: SVA-ER/1, OPEG/1, VSC/1, EMA/1, POR/1, SVA-GOV/1 — 96-vector tri-runtime conformance + AER-1 interop & OPEG/1+AER-1 gate & offline browser playgrounds",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,8 +14,8 @@
     "conformance:node": "node conformance/v1/runners/node-verify.mjs",
     "conformance:webcrypto": "node conformance/v1/runners/webcrypto-verify.mjs",
     "conformance:java": "java conformance/v1/runners/SvaConformance.java conformance/v1/vectors.json",
-    "conformance:interop": "node conformance/interop/aer1-svaer1/verify-interop.mjs",
-    "conformance": "node conformance/v1/runners/node-verify.mjs && node conformance/v1/runners/webcrypto-verify.mjs && java conformance/v1/runners/SvaConformance.java conformance/v1/vectors.json && node conformance/interop/aer1-svaer1/verify-interop.mjs",
+    "conformance:interop": "node conformance/interop/aer1-svaer1/verify-interop.mjs && node conformance/interop/opeg1-aer1/verify-opeg1-aer1.mjs",
+    "conformance": "node conformance/v1/runners/node-verify.mjs && node conformance/v1/runners/webcrypto-verify.mjs && java conformance/v1/runners/SvaConformance.java conformance/v1/vectors.json && node conformance/interop/aer1-svaer1/verify-interop.mjs && node conformance/interop/opeg1-aer1/verify-opeg1-aer1.mjs",
     "demo:immune": "node demos/immune-mesh/run-demo.mjs",
     "generate:vectors": "node conformance/v1/generate-vectors.mjs"
   },

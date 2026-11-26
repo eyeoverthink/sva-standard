@@ -523,16 +523,77 @@ async function verifyPor1({ vault, proofCheck = null }) {
   return true;
 }
 
-async function verifyOpeg1(doc) {
-  if (!doc || doc.spec !== 'opeg/1' || doc.state !== 'S4_COMMIT') return false;
-  if (doc.mode !== 'EXECUTE_AND_RECEIVE') return false;
-  if (!Array.isArray(doc.sourcePriority) || doc.sourcePriority[0] !== 'runtime_receipt') return false;
+const AER1_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const AER1_NIL_UUID = '00000000-0000-0000-0000-000000000000';
+const AER1_HASH = /^sha256:[0-9a-f]{64}$/;
+const AER1_PROV = /^(EXECUTED BY [A-Z0-9][A-Z0-9 ._-]*|OBSERVED VIA GATEWAY|LOGGED BY AGENT)$/;
+const UTF8_FATAL = new TextDecoder('utf-8', { fatal: true });
+
+async function evaluateAer1ForOpeg(r) {
+  const fail = (reason) => ({ ok: false, outcome: 'verification_failed', clockAttestation: 'absent', issuerKeyBinding: 'absent', reason });
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return fail('not an object');
+  if (typeof r.id !== 'string' || !AER1_UUID.test(r.id) || r.id === AER1_NIL_UUID) return fail('invalid id');
+  if (r.receipt_schema_version !== '0.4') return fail('expected schema version 0.4');
+  if (!isValidRfc3339(r.created_at)) return fail('invalid created_at');
+  if (!r.tool || typeof r.tool !== 'object' || !['name', 'version', 'scope'].every((k) => typeof r.tool[k] === 'string' && r.tool[k].length > 0)) return fail('invalid tool');
+  if (typeof r.provenance_class !== 'string' || !AER1_PROV.test(r.provenance_class)) return fail('invalid provenance_class');
+  if (r.verification_status !== 'verified') return fail('verification_status must be verified for OPEG/1');
+  if (typeof r.canonical_bytes !== 'string' || !STRICT_B64.test(r.canonical_bytes)) return fail('invalid canonical_bytes');
+  if (typeof r.output_hash !== 'string' || !AER1_HASH.test(r.output_hash)) return fail('invalid output_hash');
+  if (typeof r.metadata_hash !== 'string' || !AER1_HASH.test(r.metadata_hash)) return fail('invalid metadata_hash');
+  let rawBytes;
+  try { rawBytes = decodeBase64(r.canonical_bytes); } catch { return fail('bad base64'); }
+  if ('sha256:' + await sha256Bytes(rawBytes) !== r.output_hash) return fail('output_hash mismatch');
+  let payload;
+  try { payload = JSON.parse(UTF8_FATAL.decode(rawBytes)); } catch { return fail('canonical_bytes not strict UTF-8 JSON'); }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return fail('payload not object');
+  if (payload.receipt_schema_version !== r.receipt_schema_version) return fail('version agreement mismatch');
+  if (payload.issuer_claims?.provenance_class !== r.provenance_class) return fail('provenance binding mismatch');
+  const metaBlock = {
+    created_at: r.created_at,
+    id: r.id,
+    output_hash: r.output_hash,
+    provenance_class: r.provenance_class,
+    receipt_schema_version: r.receipt_schema_version,
+    tool: { name: r.tool.name, scope: r.tool.scope, version: r.tool.version },
+  };
+  if ('sha256:' + await sha256Text(canonical(metaBlock)) !== r.metadata_hash) return fail('metadata_hash mismatch');
+  return { ok: true, outcome: 'verified', clockAttestation: 'absent', issuerKeyBinding: 'absent', payload };
+}
+
+export async function evaluateOpeg1(doc) {
+  const blocked = (reason, receiptFormat = doc?.receiptFormat ?? 'sva-er/1', receiptOutcome = null) => ({
+    ok: false, gate: 'blocked', receiptFormat, reason, receiptOutcome,
+  });
+  if (!doc || doc.spec !== 'opeg/1' || doc.state !== 'S4_COMMIT') return blocked('invalid spec/state');
+  if (doc.mode !== 'EXECUTE_AND_RECEIVE') return blocked('forbidden mode (DIRECT_INFERENCE blocked)');
+  if (!Array.isArray(doc.sourcePriority) || doc.sourcePriority[0] !== 'runtime_receipt') return blocked('sourcePriority must start with runtime_receipt');
   const san = doc.sanitizer;
-  if (!san || san.status !== 'SUCCESS' || !san.rSan || typeof san.rSan !== 'object' || Array.isArray(san.rSan)) return false;
+  if (!san || san.status !== 'SUCCESS' || !san.rSan || typeof san.rSan !== 'object' || Array.isArray(san.rSan)) return blocked('invalid sanitizer');
   const rSanCanon = canonical(san.rSan);
-  if (await sha256Text(rSanCanon) !== san.rSanSha256) return false;
-  const er = await evaluateSvaEr1({ receipt: doc.receipt, deliverable: rSanCanon });
-  return er.ok === true && er.outcome === 'verified' && er.deliverable === 'verified';
+  if (await sha256Text(rSanCanon) !== san.rSanSha256) return blocked('rSanSha256 mismatch');
+  const fmt = doc.receiptFormat ?? 'sva-er/1';
+  if (fmt === 'sva-er/1') {
+    const er = await evaluateSvaEr1({ receipt: doc.receipt, deliverable: rSanCanon });
+    if (er.ok !== true || er.outcome !== 'verified' || er.deliverable !== 'verified') return blocked('sva-er/1 receipt failed', fmt, er);
+    return { ok: true, gate: 'pass', receiptFormat: fmt, receiptOutcome: er };
+  }
+  if (fmt === 'aer-1') {
+    const aer = await evaluateAer1ForOpeg(doc.receipt);
+    const receiptOutcome = { outcome: aer.outcome, clockAttestation: aer.clockAttestation, issuerKeyBinding: aer.issuerKeyBinding };
+    if (!aer.ok) return blocked(aer.reason, fmt, receiptOutcome);
+    const outputs = aer.payload?.outputs;
+    const directOk = outputs !== undefined && await sha256Text(canonical(outputs)) === san.rSanSha256;
+    const explicit = outputs?.rSanSha256;
+    const explicitOk = explicit === san.rSanSha256 || explicit === 'sha256:' + san.rSanSha256;
+    if (!directOk && !explicitOk) return blocked('aer-1 outputs binding mismatch', fmt, receiptOutcome);
+    return { ok: true, gate: 'pass', receiptFormat: fmt, receiptOutcome };
+  }
+  return blocked(`unsupported receiptFormat: ${fmt}`, fmt);
+}
+
+async function verifyOpeg1(doc) {
+  return (await evaluateOpeg1(doc)).ok === true;
 }
 
 async function verifyGov1({ stone, task }) {

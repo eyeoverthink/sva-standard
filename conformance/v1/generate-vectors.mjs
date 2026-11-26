@@ -806,6 +806,40 @@ function makeOpegCommit({ mode = 'EXECUTE_AND_RECEIVE', rSan = { experiment: 'EP
   const opForgedReceipt = makeOpegCommit();
   opForgedReceipt.receipt.statementSig = '0'.repeat(128);
   add('opeg-04', 'opeg1', 'Forged SVA-ER/1 receipt inside OPEG/1 commit rejected', false, opForgedReceipt);
+
+  // OPEG/1 format-agnostic AER-1 v0.4 interop vectors (pinned from PR #2 real-04.json)
+  const aer1Real04 = {
+    id: 'c17b436d-0d9e-48a1-a5de-08dc80a9767e',
+    receipt_schema_version: '0.4',
+    created_at: '2026-10-17T15:04:05.000Z',
+    tool: { name: 'live_price', version: '4.0.0', scope: 'public' },
+    provenance_class: 'EXECUTED BY ZAMBO',
+    canonical_bytes: 'eyJjYWxsZXIiOnsiaWQiOiJzaGEyNTY6M2QxMDhmNzI1OTY4N2QzYWRlOWMzMGUyYzNjMzNmMmYxZjkyYTJhNTk0N2IwNDMxOGQ2NjYzZDRkNzlhZjBhYSIsInR5cGUiOiJhbm9ueW1vdXMifSwiaW5wdXRzIjp7InBhaXIiOiJCVENfVVNEIn0sImlzc3Vlcl9jbGFpbXMiOnsicHJvdmVuYW5jZV9jbGFzcyI6IkVYRUNVVEVEIEJZIFpBTUJPIn0sIm91dHB1dHMiOnsicGFpciI6IkJUQ19VU0QiLCJwcmljZV91c2QiOjk3NDEyLjU1LCJzb3VyY2UiOiJDb2luR2Vja28iLCJzdGF0dXMiOiJjb21wbGV0ZSJ9LCJyZWNlaXB0X3NjaGVtYV92ZXJzaW9uIjoiMC40IiwidG9vbCI6ImxpdmVfcHJpY2UifQ==',
+    canonical_byte_length: 337,
+    output_hash: 'sha256:c92e4cfdc2a00d2914d6d5c596d0936e6bfdba522a125467a08ef6ebce5974ca',
+    metadata_hash: 'sha256:8502f3dfb695d08d986ae9b51b7d86e278d6911bfe0dbfda92a57679037029da',
+    verification_status: 'verified',
+  };
+  const aer1Outputs = { pair: 'BTC_USD', price_usd: 97412.55, source: 'CoinGecko', status: 'complete' };
+  const aer1OutputsSha = sha256(canonical(aer1Outputs));
+  add('opeg-05', 'opeg1', 'Valid OPEG/1 S4_COMMIT with receiptFormat=aer-1 (served kit 1.6.1 valid/real-04.json)', true, {
+    spec: 'opeg/1',
+    state: 'S4_COMMIT',
+    mode: 'EXECUTE_AND_RECEIVE',
+    receiptFormat: 'aer-1',
+    sourcePriority: ['runtime_receipt', 'memory_artifact', 'initial_prompt'],
+    sanitizer: { status: 'SUCCESS', rSan: aer1Outputs, rSanSha256: aer1OutputsSha },
+    receipt: aer1Real04,
+  });
+  add('opeg-06', 'opeg1', 'OPEG/1 receiptFormat=aer-1 with tampered R_san price_usd rejected despite valid AER-1 receipt', false, {
+    spec: 'opeg/1',
+    state: 'S4_COMMIT',
+    mode: 'EXECUTE_AND_RECEIVE',
+    receiptFormat: 'aer-1',
+    sourcePriority: ['runtime_receipt', 'memory_artifact', 'initial_prompt'],
+    sanitizer: { status: 'SUCCESS', rSan: { ...aer1Outputs, price_usd: 1 }, rSanSha256: aer1OutputsSha },
+    receipt: aer1Real04,
+  });
 }
 
 // ==================== 9. SVA-GOV/1 SIGNED POLICY STONE & TASK ADMISSION (4 vectors) ====================
@@ -841,7 +875,7 @@ function makeGovBundle({ status = 'ACTIVE', agent = 'mac-hermes', allowedAgents 
 }
 
 const doc = {
-  specVersion: 'sva-conformance/1.5',
+  specVersion: 'sva-conformance/1.6',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {

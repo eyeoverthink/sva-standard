@@ -37,8 +37,10 @@
       <h2>Live Gate Pipeline (<code>S0 &rarr; S1 &rarr; S2 [HALT] &rarr; S3 [&Sigma; + SVA-ER/1] &rarr; S4 [COMMIT]</code>)</h2>
       <div class="kv" style="margin-top:10px;gap:8px;flex-wrap:wrap">
         <button id="btnDirect" class="btn danger">1. Try DIRECT_INFERENCE Bypass (Should Block)</button>
-        <button id="btnExecute" class="btn primary">2. Run EP3 Cubic Perturbation + Sign SVA-ER/1 Receipt</button>
-        <button id="btnTamper" class="btn warn" disabled>3. Tamper R_san After Signing (Flip Sign &alpha;: -1 &rarr; +1)</button>
+        <button id="btnExecute" class="btn primary">2. Run EP3 Check + Sign SVA-ER/1 Receipt</button>
+        <button id="btnTamper" class="btn warn" disabled>3. Tamper SVA-ER/1 R_san (&alpha;: -1 &rarr; +1)</button>
+        <button id="btnAer1" class="btn primary">4. Unlock with Served AER-1 v0.4 Receipt (real-04.json)</button>
+        <button id="btnAer1Tamper" class="btn warn">5. Tamper AER-1 R_san (price_usd: 97412.55 &rarr; 1)</button>
       </div>
       <div id="gateBanner" class="banner" style="margin-top:14px">
         Ready. Click <strong>1</strong> to test fail-closed refusal or <strong>2</strong> to run the numerical EP3 eigenvalue check and mint a real WebCrypto SVA-ER/1 receipt.
@@ -131,6 +133,32 @@
       };
     }
 
+    const UTF8_FATAL = new TextDecoder('utf-8', { fatal: true });
+    const decodeBase64 = (b64) => {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    };
+    const sha256BytesHex = async (bytes) => toHex(await crypto.subtle.digest('SHA-256', bytes));
+
+    async function evaluateAer1V04Browser(r) {
+      const fail = (reason) => ({ ok: false, outcome: 'verification_failed', clockAttestation: 'absent', issuerKeyBinding: 'absent', reason });
+      if (!r || r.receipt_schema_version !== '0.4' || r.verification_status !== 'verified') return fail('invalid schema or unverified status');
+      const rawBytes = decodeBase64(r.canonical_bytes);
+      if ('sha256:' + await sha256BytesHex(rawBytes) !== r.output_hash) return fail('output_hash mismatch');
+      let payload;
+      try { payload = JSON.parse(UTF8_FATAL.decode(rawBytes)); } catch { return fail('canonical_bytes not strict UTF-8 JSON'); }
+      if (payload.receipt_schema_version !== '0.4' || payload.issuer_claims?.provenance_class !== r.provenance_class) return fail('binding mismatch');
+      const metaBlock = {
+        created_at: r.created_at, id: r.id, output_hash: r.output_hash,
+        provenance_class: r.provenance_class, receipt_schema_version: r.receipt_schema_version,
+        tool: { name: r.tool.name, scope: r.tool.scope, version: r.tool.version },
+      };
+      if ('sha256:' + await sha256Hex(canonical(metaBlock)) !== r.metadata_hash) return fail('metadata_hash mismatch');
+      return { ok: true, outcome: 'verified', clockAttestation: 'absent', issuerKeyBinding: 'absent', payload };
+    }
+
     async function evaluateOpegGate(envelope) {
       if (!envelope || envelope.spec !== 'opeg/1') {
         return { ok: false, gate: 'BLOCKED', reason: 'Malformed OPEG/1 envelope' };
@@ -146,13 +174,25 @@
       if (recomputed !== envelope.sanitizer.rSanSha256) {
         return { ok: false, gate: 'BLOCKED_RSAN_TAMPER', reason: `R_san digest mismatch: expected ${envelope.sanitizer.rSanSha256.slice(0, 16)}..., got ${recomputed.slice(0, 16)}...` };
       }
+      const fmt = envelope.receiptFormat || 'sva-er/1';
+      if (fmt === 'aer-1') {
+        const aer = await evaluateAer1V04Browser(envelope.receipt);
+        const receiptOutcome = { outcome: aer.outcome, clockAttestation: aer.clockAttestation, issuerKeyBinding: aer.issuerKeyBinding };
+        if (!aer.ok) return { ok: false, gate: 'BLOCKED_RECEIPT_INVALID', receiptFormat: 'aer-1', reason: aer.reason, receiptOutcome };
+        const direct = await sha256Hex(canonical(aer.payload.outputs));
+        if (direct !== envelope.sanitizer.rSanSha256) {
+          return { ok: false, gate: 'BLOCKED_OUTPUTS_BINDING', receiptFormat: 'aer-1', reason: 'AER-1 canonical_bytes.outputs digest mismatch', receiptOutcome };
+        }
+        return { ok: true, gate: 'S4_COMMIT_UNLOCKED', receiptFormat: 'aer-1', sourcePriority: envelope.sourcePriority, rSanSha256: recomputed, receiptOutcome };
+      }
       const rCheck = await verifyReceipt(envelope.receipt, { deliverable: rSanCanonical });
       if (!rCheck.ok || rCheck.deliverable !== 'verified') {
-        return { ok: false, gate: 'BLOCKED_RECEIPT_INVALID', reason: 'Bound SVA-ER/1 receipt failed cryptographic verification', receiptOutcome: rCheck };
+        return { ok: false, gate: 'BLOCKED_RECEIPT_INVALID', receiptFormat: 'sva-er/1', reason: 'Bound SVA-ER/1 receipt failed cryptographic verification', receiptOutcome: rCheck };
       }
       return {
         ok: true,
         gate: 'S4_COMMIT_UNLOCKED',
+        receiptFormat: 'sva-er/1',
         sourcePriority: envelope.sourcePriority,
         rSanSha256: recomputed,
         receiptOutcome: rCheck,
@@ -242,6 +282,48 @@
       outSan.textContent = `// TAMPERED R_san (leadingAlpha flipped -1 -> +1 after Ed25519 signing):\n${JSON.stringify(tampered.sanitizer.rSan, null, 2)}`;
       outVerify.textContent = JSON.stringify(verdict, null, 2);
       setBanner(false, 'TAMPER CAUGHT BEFORE S4_COMMIT: R_san digest no longer matches signed SVA-ER/1 receipt!');
+    });
+
+    // Served AER-1 v0.4 receipt from draft-zambo-aer1-26 kit 1.6.1 (base/test-vectors/valid/real-04.json, PR #2)
+    const AER1_REAL04_ENVELOPE = {
+      spec: 'opeg/1',
+      state: 'S4_COMMIT',
+      mode: 'EXECUTE_AND_RECEIVE',
+      receiptFormat: 'aer-1',
+      sourcePriority: ['runtime_receipt', 'memory_artifact', 'initial_prompt'],
+      sanitizer: {
+        status: 'SUCCESS',
+        rSan: { pair: 'BTC_USD', price_usd: 97412.55, source: 'CoinGecko', status: 'complete' },
+        rSanSha256: '153c596b951df51e67087b98515de359a48894c2c826f9056b0934db47c6ee24',
+      },
+      receipt: {
+        id: 'c17b436d-0d9e-48a1-a5de-08dc80a9767e',
+        receipt_schema_version: '0.4',
+        created_at: '2026-10-17T15:04:05.000Z',
+        tool: { name: 'live_price', version: '4.0.0', scope: 'public' },
+        provenance_class: 'EXECUTED BY ZAMBO',
+        canonical_bytes: 'eyJjYWxsZXIiOnsiaWQiOiJzaGEyNTY6M2QxMDhmNzI1OTY4N2QzYWRlOWMzMGUyYzNjMzNmMmYxZjkyYTJhNTk0N2IwNDMxOGQ2NjYzZDRkNzlhZjBhYSIsInR5cGUiOiJhbm9ueW1vdXMifSwiaW5wdXRzIjp7InBhaXIiOiJCVENfVVNEIn0sImlzc3Vlcl9jbGFpbXMiOnsicHJvdmVuYW5jZV9jbGFzcyI6IkVYRUNVVEVEIEJZIFpBTUJPIn0sIm91dHB1dHMiOnsicGFpciI6IkJUQ19VU0QiLCJwcmljZV91c2QiOjk3NDEyLjU1LCJzb3VyY2UiOiJDb2luR2Vja28iLCJzdGF0dXMiOiJjb21wbGV0ZSJ9LCJyZWNlaXB0X3NjaGVtYV92ZXJzaW9uIjoiMC40IiwidG9vbCI6ImxpdmVfcHJpY2UifQ==',
+        canonical_byte_length: 337,
+        output_hash: 'sha256:c92e4cfdc2a00d2914d6d5c596d0936e6bfdba522a125467a08ef6ebce5974ca',
+        metadata_hash: 'sha256:8502f3dfb695d08d986ae9b51b7d86e278d6911bfe0dbfda92a57679037029da',
+        verification_status: 'verified',
+      },
+    };
+
+    document.getElementById('btnAer1').addEventListener('click', async () => {
+      const verdict = await evaluateOpegGate(AER1_REAL04_ENVELOPE);
+      outSan.textContent = `// AER-1 v0.4 (draft-zambo-aer1-26 kit 1.6.1 valid/real-04.json)\n// Sanitized R_san = receipt canonical_bytes.outputs:\n${JSON.stringify(AER1_REAL04_ENVELOPE.sanitizer.rSan, null, 2)}`;
+      outVerify.textContent = JSON.stringify(verdict, null, 2);
+      setBanner(verdict.ok, 'S4_COMMIT UNLOCKED (receiptFormat=aer-1): Served AER-1 v0.4 real-04.json verified (clockAttestation=absent, issuerKeyBinding=absent).');
+    });
+
+    document.getElementById('btnAer1Tamper').addEventListener('click', async () => {
+      const tampered = JSON.parse(JSON.stringify(AER1_REAL04_ENVELOPE));
+      tampered.sanitizer.rSan.price_usd = 1;
+      const verdict = await evaluateOpegGate(tampered);
+      outSan.textContent = `// TAMPERED AER-1 R_san (price_usd 97412.55 -> 1; AER-1 receipt itself stays intact):\n${JSON.stringify(tampered.sanitizer.rSan, null, 2)}`;
+      outVerify.textContent = JSON.stringify(verdict, null, 2);
+      setBanner(false, 'TAMPER CAUGHT AT RULE 4 (receiptFormat=aer-1): R_san digest mismatch blocked S4_COMMIT even though the AER-1 receipt verifies!');
     });
   </script>
 </body>

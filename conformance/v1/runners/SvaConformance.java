@@ -485,7 +485,11 @@ public class SvaConformance {
     return true;
   }
 
-  // ==================== OPEG/1 Empirical Grounding Gate Verifier ====================
+  // ==================== OPEG/1 Empirical Grounding Gate Verifier (sva-er/1 & aer-1) ====================
+  private static final Pattern AER1_UUID = Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+  private static final Pattern AER1_HASH = Pattern.compile("^sha256:[0-9a-f]{64}$");
+  private static final Pattern AER1_PROV = Pattern.compile("^(EXECUTED BY [A-Z0-9][A-Z0-9 ._-]*|OBSERVED VIA GATEWAY|LOGGED BY AGENT)$");
+
   private static boolean verifyOpeg1(Map<String, Object> doc) throws Exception {
     if (doc == null || !"opeg/1".equals(asStr(doc.get("spec"))) || !"S4_COMMIT".equals(asStr(doc.get("state")))) return false;
     if (!"EXECUTE_AND_RECEIVE".equals(asStr(doc.get("mode")))) return false;
@@ -498,11 +502,58 @@ public class SvaConformance {
     if (rSan == null || rSanSha == null) return false;
     String rSanCanon = canonical(rSan);
     if (!sha256(rSanCanon).equals(rSanSha)) return false;
-    Map<String, Object> erIn = new HashMap<>();
-    erIn.put("receipt", doc.get("receipt"));
-    erIn.put("deliverable", rSanCanon);
-    SvaErOutcome er = evaluateSvaEr1(erIn);
-    return er.ok() && "verified".equals(er.outcome()) && "verified".equals(er.deliverable());
+    String fmt = asStr(doc.get("receiptFormat"));
+    if (fmt == null) fmt = "sva-er/1";
+    if ("sva-er/1".equals(fmt)) {
+      Map<String, Object> erIn = new HashMap<>();
+      erIn.put("receipt", doc.get("receipt"));
+      erIn.put("deliverable", rSanCanon);
+      SvaErOutcome er = evaluateSvaEr1(erIn);
+      return er.ok() && "verified".equals(er.outcome()) && "verified".equals(er.deliverable());
+    }
+    if ("aer-1".equals(fmt)) {
+      Map<String, Object> r = asObj(doc.get("receipt"));
+      if (r == null) return false;
+      String id = asStr(r.get("id"));
+      String ver = asStr(r.get("receipt_schema_version"));
+      String createdAt = asStr(r.get("created_at"));
+      Map<String, Object> tool = asObj(r.get("tool"));
+      String prov = asStr(r.get("provenance_class"));
+      String vstat = asStr(r.get("verification_status"));
+      String cb = asStr(r.get("canonical_bytes"));
+      String outHash = asStr(r.get("output_hash"));
+      String metaHash = asStr(r.get("metadata_hash"));
+      if (id == null || !AER1_UUID.matcher(id).matches() || "00000000-0000-0000-0000-000000000000".equals(id)) return false;
+      if (!"0.4".equals(ver) || !isValidRfc3339(createdAt) || tool == null) return false;
+      String tName = asStr(tool.get("name")), tVer = asStr(tool.get("version")), tScope = asStr(tool.get("scope"));
+      if (tName == null || tName.isEmpty() || tVer == null || tVer.isEmpty() || tScope == null || tScope.isEmpty()) return false;
+      if (prov == null || !AER1_PROV.matcher(prov).matches() || !"verified".equals(vstat)) return false;
+      if (cb == null || !STRICT_B64.matcher(cb).matches() || outHash == null || !AER1_HASH.matcher(outHash).matches() || metaHash == null || !AER1_HASH.matcher(metaHash).matches()) return false;
+      byte[] rawBytes = Base64.getDecoder().decode(cb);
+      if (!("sha256:" + sha256(rawBytes)).equals(outHash)) return false;
+      var dec = StandardCharsets.UTF_8.newDecoder()
+        .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+        .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
+      String utf8 = dec.decode(java.nio.ByteBuffer.wrap(rawBytes)).toString();
+      Map<String, Object> payload = asObj(JsonParser.parse(utf8));
+      if (payload == null || !ver.equals(asStr(payload.get("receipt_schema_version")))) return false;
+      Map<String, Object> ic = asObj(payload.get("issuer_claims"));
+      if (ic == null || !prov.equals(asStr(ic.get("provenance_class")))) return false;
+      Map<String, Object> toolMeta = new LinkedHashMap<>();
+      toolMeta.put("name", tName); toolMeta.put("scope", tScope); toolMeta.put("version", tVer);
+      Map<String, Object> metaBlock = new LinkedHashMap<>();
+      metaBlock.put("created_at", createdAt); metaBlock.put("id", id); metaBlock.put("output_hash", outHash);
+      metaBlock.put("provenance_class", prov); metaBlock.put("receipt_schema_version", ver); metaBlock.put("tool", toolMeta);
+      if (!("sha256:" + sha256(canonical(metaBlock))).equals(metaHash)) return false;
+      Object outputs = payload.get("outputs");
+      if (outputs == null) return false;
+      boolean directOk = sha256(canonical(outputs)).equals(rSanSha);
+      Map<String, Object> outObj = asObj(outputs);
+      String explicit = outObj != null ? asStr(outObj.get("rSanSha256")) : null;
+      boolean explicitOk = rSanSha.equals(explicit) || ("sha256:" + rSanSha).equals(explicit);
+      return directOk || explicitOk;
+    }
+    return false;
   }
 
   // ==================== SVA-GOV/1 Signed Policy Stone & Task Governance ====================
