@@ -1,0 +1,17 @@
+{
+  "name": "@eyeoverthink/privacy-membrane",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Zero-dependency Privacy Membrane (PII/secret sealing, digit-squeezed egress leak audit, lenient unsealing) & Sentinel prompt-injection guard for Node.js and browsers",
+  "license": "Apache-2.0",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "bin": {
+    "privacy-membrane": "./bin/privacy-membrane.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EyeOverThink — Zero-Backend Interactive Playgrounds</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>EyeOverThink — Zero-Backend Verification Playgrounds</h1>
+        <div class="kv">
+          <span class="pill ok">0 backend servers</span>
+          <span class="pill ok">0 external requests</span>
+          <span class="pill ok">0 npm runtime deps</span>
+          <span class="pill accent">Exact src/ ES modules</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./receipt-lab.html">1. Receipt Tamper Lab</a>
+        <a href="./membrane-lab.html">2. Privacy Membrane Lab</a>
+        <a href="./skill-lab.html">3. Zero-Call Skill Lab</a>
+      </nav>
+    </header>
+
+    <p class="lead">
+      Every tool below runs <strong>100% locally in your browser tab</strong> using the exact zero-dependency modules
+      from <code>eyeoverthink-agency</code> (WebCrypto Ed25519/SHA-256, RFC 6962 Merkle proofs, deterministic PII
+      sealing, and zero-model binder induction). Turn off your Wi-Fi and try to break them.
+    </p>
+
+    <div class="grid">
+      <section class="card">
+        <span class="pill accent">AER/1 · WebCrypto Ed25519</span>
+        <h2 style="margin-top:10px">1. AI Execution Receipt &amp; Tamper Lab</h2>
+        <p class="lead" style="margin-bottom:14px">
+          Mint a real Ed25519-signed, RFC 6962 Merkle-proven mission receipt right in your browser, then click
+          6 one-click <strong>Try to Cheat</strong> attacks (strip an entry, duplicate a sequence number, inflate a critic
+          score, alter 1 byte of the deliverable, forge a proof, or swap the public key). Or paste any real
+          <code>receipt.json</code> from your agency.
+        </p>
+        <a class="pill ok" href="./receipt-lab.html">Open Receipt Tamper Lab &rarr;</a>
+      </section>
+
+      <section class="card">
+        <span class="pill accent">EMA/1 · Deterministic Egress Guard</span>
+        <h2 style="margin-top:10px">2. Privacy Membrane &amp; Sentinel Lab</h2>
+        <p class="lead" style="margin-bottom:14px">
+          Seal clinic records, DevOps secrets, or hostile prompts into typed placeholders (<code>⟦EMAIL_1⟧</code>),
+          restore mangled LLM replies (<code>[EMAIL_1]</code>, <code>«SSN_1»</code>), trigger a live
+          <strong>digit-squeezed egress leak block</strong>, and test zero-width Unicode prompt-injection evasion.
+        </p>
+        <a class="pill ok" href="./membrane-lab.html">Open Privacy Membrane Lab &rarr;</a>
+      </section>
+
+      <section class="card">
+        <span class="pill accent">VSC/1 · Zero-Model Induction</span>
+        <h2 style="margin-top:10px">3. Zero-Call Skill Binder Induction Lab</h2>
+        <p class="lead" style="margin-bottom:14px">
+          Watch the agency induce a compiled, self-contained <code>function bind(task)</code> from 3 solved examples
+          with <strong>zero LLM calls</strong>, verify leave-one-out accuracy, and try to trick it with sales-tax,
+          tip, and extra-number near-miss traps.
+        </p>
+        <a class="pill ok" href="./skill-lab.html">Open Zero-Call Skill Lab &rarr;</a>
+      </section>
+    </div>
+
+    <footer>
+      Apache-2.0 · <a href="https://github.com/eyeoverthink/eyeoverthink-agency">eyeoverthink/eyeoverthink-agency</a> ·
+      All cryptography and logic executes client-side from <code>playgrounds/lib/</code>.
+    </footer>
+  </div>
+</body>
+</html>

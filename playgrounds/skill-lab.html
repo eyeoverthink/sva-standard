@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zero-Call Skill Binder Induction Lab — EyeOverThink</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>3. Zero-Call Skill Binder Induction Lab</h1>
+        <div class="kv">
+          <span class="pill ok">0 Model Calls</span>
+          <span class="pill accent">Leave-One-Out Verified</span>
+          <span class="pill accent">Positional Wording Gate</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">&larr; All Playgrounds</a>
+        <a href="./receipt-lab.html">Receipt Tamper Lab</a>
+        <a href="./membrane-lab.html">Privacy Membrane Lab</a>
+      </nav>
+    </header>
+
+    <p class="lead">
+      From just <strong>3 solved examples + 1 refusal</strong>, the agency induces a deterministic, zero-model
+      <code>function bind(task)</code> in under 1 millisecond — then refuses any near-miss (sales tax, tip, or extra
+      numbers) rather than guessing. Try to trick the binder below.
+    </p>
+
+    <div id="routeBanner" class="banner ok">
+      <span id="routeText">Ready</span>
+      <span id="routeCost" class="pill ok">0 model calls</span>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <h3>Try to Trick the Binder</h3>
+      <div class="btns">
+        <button class="ok" id="btnValid">Valid Fresh Task ($240 coat, 25% then 10% off)</button>
+        <button class="danger" id="btnTax">Near-Miss Trap: Sales Tax (20% off + 8% sales tax)</button>
+        <button class="danger" id="btnTip">Near-Miss Trap: Tip (15% off + 18% tip)</button>
+        <button class="danger" id="btnExtra">Shape Trap: Extra Quantity Number (2 jackets)</button>
+      </div>
+      <label for="taskInput" style="font-size:12px;color:var(--muted)">Test task prompt (type anything)</label>
+      <input type="text" id="taskInput" />
+    </div>
+
+    <div class="grid-2">
+      <section class="card">
+        <h2>Routing Decision &amp; Zero-Call Execution</h2>
+        <pre class="box" id="decisionOut">{}</pre>
+        <h3 style="margin-top:16px">Leave-One-Out Cross-Validation (3/3 Required)</h3>
+        <div id="looOut"></div>
+      </section>
+
+      <section class="card">
+        <h2>Training Corpus (3 Verified Positives + 1 Refused Tax Example)</h2>
+        <pre class="box" id="corpusOut"></pre>
+        <h3 style="margin-top:16px">Induced Spec (0 Model Calls)</h3>
+        <pre class="box" id="specOut"></pre>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:18px">
+      <h2>Compiled Self-Contained <code>function bind(task)</code></h2>
+      <pre class="box" id="compiledOut"></pre>
+    </section>
+
+    <footer>
+      Powered directly by <code>playgrounds/lib/binder-induction.js</code> (zero imports, runs identically in Node and browser).
+    </footer>
+  </div>
+
+  <script type="module">
+    import { induce, leaveOneOut, applySpec, novelWording, compileSpec, numberTokens, shapeOf } from './lib/binder-induction.js';
+
+    const SKILL = {
+      name: 'sequential_discount',
+      params: {
+        type: 'object',
+        required: ['price', 'd1', 'd2'],
+        properties: {
+          price: { type: 'number', description: 'original price in dollars' },
+          d1: { type: 'number', description: 'first discount as decimal fraction' },
+          d2: { type: 'number', description: 'second discount as decimal fraction' },
+        },
+      },
+      run: ({ price, d1, d2 }) => Math.round(price * (1 - d1) * (1 - d2) * 100) / 100,
+    };
+
+    const POS = [
+      { task: 'A $100 jacket is 20% off, then an extra 10% off. What is the final price?', input: { price: 100, d1: 0.2, d2: 0.1 } },
+      { task: 'A $80 pair of shoes is 15% off, then an extra 20% off. What is the final price?', input: { price: 80, d1: 0.15, d2: 0.2 } },
+      { task: 'A $150 backpack is 30% off, then an extra 5% off. What is the final price?', input: { price: 150, d1: 0.3, d2: 0.05 } },
+    ];
+    const NEG = [
+      { task: 'A $200 desk is 20% off, then 8% sales tax is added. What is the final price?' },
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const induced = induce(POS, NEG, SKILL);
+    const loo = leaveOneOut(POS, NEG, SKILL);
+
+    $('corpusOut').textContent = JSON.stringify({ positives: POS, negatives: NEG }, null, 2);
+    $('specOut').textContent = JSON.stringify(induced.spec, null, 2);
+    $('compiledOut').textContent = compileSpec(induced.spec);
+    $('looOut').innerHTML = loo.map((r, i) => `
+      <div class="check-row ${r.ok ? 'ok' : 'fail'}">
+        <span class="pill ${r.ok ? 'ok' : 'fail'}">${r.ok ? 'PASS' : 'FAIL'}</span>
+        <div>
+          <div class="name">Holdout #${i + 1}</div>
+          <div class="detail">${r.task} &rarr; ${JSON.stringify(r.got)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    function evaluate() {
+      const task = $('taskInput').value;
+      const t0 = performance.now();
+      const tokens = numberTokens(task);
+      const shape = shapeOf(tokens);
+      const bound = applySpec(induced.spec, task);
+      const novel = novelWording(POS, task);
+      const ms = (performance.now() - t0).toFixed(2);
+
+      let decision;
+      if (!bound) {
+        const why = !induced.spec.shapes.includes(shape)
+          ? `number shape mismatch (got "${shape}", expected ${JSON.stringify(induced.spec.shapes)})`
+          : 'refused by learned block word / context block word';
+        decision = { routed: false, modelCalls: 0, reason: why, shape, novelWording: novel, tokens };
+        $('routeBanner').className = 'banner warn';
+        $('routeText').textContent = 'SAFE REFUSAL — Binder refused near-miss; falls through to verified agent loop';
+        $('routeCost').className = 'pill warn';
+        $('routeCost').textContent = `${ms} ms · refused safely`;
+      } else if (novel.length > 0) {
+        decision = { routed: false, modelCalls: 0, reason: 'unverified wording gate (shadow-check via agents before trusting)', boundCandidate: bound, novelWording: novel, shape };
+        $('routeBanner').className = 'banner warn';
+        $('routeText').textContent = `UNVERIFIED WORDING HELD — Novel role wording [${novel.slice(0, 3).join(', ')}] routed to agents instead of guessing`;
+        $('routeCost').className = 'pill warn';
+        $('routeCost').textContent = `${ms} ms · held for shadow check`;
+      } else {
+        const answer = SKILL.run(bound);
+        decision = { routed: true, skill: SKILL.name, modelCalls: 0, boundInput: bound, exactAnswer: answer, shape, novelWording: [] };
+        $('routeBanner').className = 'banner ok';
+        $('routeText').textContent = `ZERO-CALL SKILL HIT — Exact answer: $${answer.toFixed(2)} (0 LLM calls, verified wording)`;
+        $('routeCost').className = 'pill ok';
+        $('routeCost').textContent = `${ms} ms · 0 model calls`;
+      }
+      $('decisionOut').textContent = JSON.stringify(decision, null, 2);
+    }
+
+    const setTask = (t) => { $('taskInput').value = t; evaluate(); };
+    $('btnValid').onclick = () => setTask('A $240 coat is 25% off, then an extra 10% off. What is the final price?');
+    $('btnTax').onclick = () => setTask('A $200 laptop is 20% off, then 8% sales tax is added. What is the final price?');
+    $('btnTip').onclick = () => setTask('A $120 dinner is 15% off, then an 18% tip is added. What is the total?');
+    $('btnExtra').onclick = () => setTask('Buy 2 $80 jackets at 20% off, then an extra 10% off. What is the final price?');
+    $('taskInput').oninput = evaluate;
+
+    setTask('A $240 coat is 25% off, then an extra 10% off. What is the final price?');
+  </script>
+</body>
+</html>

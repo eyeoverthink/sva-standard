@@ -1,0 +1,17 @@
+{
+  "name": "@eyeoverthink/ai-receipt",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Zero-dependency offline AI Execution Receipt verifier (Ed25519 + SHA-256 + RFC 6962 Merkle + RFC 8785 JCS) for Node.js and browsers",
+  "license": "Apache-2.0",
+  "main": "./receipt-verify.js",
+  "exports": {
+    ".": "./receipt-verify.js"
+  },
+  "bin": {
+    "ai-receipt": "./bin/ai-receipt.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

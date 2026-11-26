@@ -1,0 +1,17 @@
+{
+  "name": "@eyeoverthink/skill-crystallizer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Zero-dependency, zero-LLM skill binder induction with leave-one-out verification and positional wording gates for Node.js and browsers",
+  "license": "Apache-2.0",
+  "main": "./binder-induction.js",
+  "exports": {
+    ".": "./binder-induction.js"
+  },
+  "bin": {
+    "skill-crystallizer": "./bin/skill-crystallizer.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Execution Receipt &amp; Tamper Lab — EyeOverThink</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>1. AI Execution Receipt &amp; Tamper Lab</h1>
+        <div class="kv">
+          <span class="pill ok">Offline WebCrypto Ed25519</span>
+          <span class="pill accent">RFC 6962 0x00/0x01 Merkle</span>
+          <span class="pill accent">RFC 8785 JCS Canonical</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">&larr; All Playgrounds</a>
+        <a href="./membrane-lab.html">Privacy Membrane Lab</a>
+        <a href="./skill-lab.html">Zero-Call Skill Lab</a>
+      </nav>
+    </header>
+
+    <p class="lead">
+      A mission receipt lets anyone verify what an AI agency actually did — <strong>without trusting the agency, its database, or the network</strong>.
+      Click any attack below to tamper with the live Ed25519-signed receipt and watch <code>verifyReceipt()</code> catch it.
+    </p>
+
+    <div id="verdictBanner" class="banner ok">
+      <span id="verdictText">Minting fresh Ed25519 receipt in browser…</span>
+      <span id="verdictTime" class="pill">—</span>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <h3>One-Click &ldquo;Try to Cheat&rdquo; Attacks</h3>
+      <div class="btns">
+        <button class="ok" id="btnReset">Restore Intact Receipt</button>
+        <button class="primary" id="btnMint">Mint Fresh Ed25519 Keypair &amp; Receipt</button>
+        <button class="danger" id="btnFlipByte">1. Add 1 Space to Deliverable</button>
+        <button class="danger" id="btnInflateScore">2. Inflate Critic Score (0.91 &rarr; 1.00)</button>
+        <button class="danger" id="btnStripEntry">3. Hide IN_CLOUD Entry (Strip)</button>
+        <button class="danger" id="btnDupEntry">4. Strip + Duplicate Entry (Fake Count)</button>
+        <button class="danger" id="btnForgeProof">5. Forge Merkle Proof Hash</button>
+        <button class="danger" id="btnSwapKey">6. Swap Agency Public Key</button>
+      </div>
+      <div id="attackNote" style="color:var(--muted);font-size:13px"></div>
+    </div>
+
+    <div class="grid-2">
+      <section class="card">
+        <h2>Verification Checks (<span id="checkCount">0</span>)</h2>
+        <div id="checksList"></div>
+        <h3 style="margin-top:16px">Recomputed Summary (From Verified Entries Only)</h3>
+        <pre class="box" id="summaryOut">{}</pre>
+      </section>
+
+      <section class="card">
+        <h2>Receipt JSON &amp; Deliverable (Editable — Paste Any Real Receipt)</h2>
+        <label for="deliverableInput" style="font-size:12px;color:var(--muted)">Deliverable text</label>
+        <textarea id="deliverableInput" rows="4"></textarea>
+        <label for="receiptInput" style="font-size:12px;color:var(--muted);display:block;margin-top:10px">Receipt JSON (v1 or v2)</label>
+        <textarea id="receiptInput" rows="16"></textarea>
+        <div class="btns">
+          <button class="primary" id="btnVerify">Re-Verify Edited JSON</button>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      Powered directly by <code>playgrounds/lib/receipt-verify.js</code> (zero imports, native browser <code>crypto.subtle</code>).
+    </footer>
+  </div>
+
+  <script type="module">
+    import { verifyReceipt, canonical, sha256Hex, merkleLeafHex, merkleNodeHex } from './lib/receipt-verify.js';
+
+    const enc = new TextEncoder();
+    const toHex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+    async function buildTree(entryHashes) {
+      const levels = [await Promise.all(entryHashes.map(merkleLeafHex))];
+      while (levels.at(-1).length > 1) {
+        const prev = levels.at(-1), next = [];
+        for (let i = 0; i < prev.length; i += 2) {
+          next.push(i + 1 < prev.length ? await merkleNodeHex(prev[i], prev[i + 1]) : prev[i]);
+        }
+        levels.push(next);
+      }
+      const root = levels.at(-1)[0];
+      const proofOf = (seq) => {
+        let idx = seq - 1;
+        const path = [];
+        for (let l = 0; l < levels.length - 1; l++) {
+          const level = levels[l];
+          if (idx % 2 === 0 && idx + 1 === level.length) { idx = Math.floor(idx / 2); continue; }
+          const sibling = idx % 2 === 0 ? level[idx + 1] : level[idx - 1];
+          path.push({ hash: sibling, left: idx % 2 === 1 });
+          idx = Math.floor(idx / 2);
+        }
+        return path;
+      };
+      return { root, proofOf };
+    }
+
+    async function mintDemoReceipt() {
+      const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+      const pubHex = toHex(await crypto.subtle.exportKey('raw', kp.publicKey));
+      const sign = async (msg) => toHex(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, enc.encode(msg)));
+
+      const missionId = 'ms_demo_' + pubHex.slice(0, 8);
+      const deliverable = '# Quarterly Billing Summary\n\nVerified total: $162.00 after sequential 25% and 10% discounts.\nAll private client identifiers were withheld by the Privacy Membrane.';
+      const deliverableSha256 = await sha256Hex(deliverable);
+      const goalSha256 = await sha256Hex('Compute discounted quarterly billing summary without leaking client PII');
+      const now = new Date().toISOString();
+
+      const rawEvents = [
+        { kind: 'mission.create', actor: 'operator', data: { id: missionId, mode: 'standard', privacy: 'sealed' } },
+        { kind: 'tool.call', actor: 'tycho', data: { missionId, tool: 'calc', ok: true } },
+        { kind: 'membrane.crossing', actor: 'membrane', data: { missionId, provider: 'firebase-edge', total: 3, withheld: { EMAIL: 1, SSN: 1, PERSON: 1 } } },
+        { kind: 'edge.inference', actor: 'edge', data: { missionId, inferenceSource: 'IN_CLOUD', model: 'gemini-2.5-flash' } },
+        { kind: 'mission.complete', actor: 'lumen', data: { id: missionId, score: 0.91, resultHash: deliverableSha256 } },
+        // Unrelated ledger entry #6 (not included in mission receipt, proves Merkle inclusion inside a larger ledger)
+        { kind: 'system.heartbeat', actor: 'agency', data: { ok: true } },
+      ];
+
+      let prev = '0'.repeat(64);
+      const rows = [];
+      for (let i = 0; i < rawEvents.length; i++) {
+        const e = { seq: i + 1, ts: now, ...rawEvents[i], prev };
+        const hash = await sha256Hex(canonical(e));
+        const sig = await sign(hash);
+        rows.push({ ...e, hash, sig, signer: pubHex });
+        prev = hash;
+      }
+
+      const { root, proofOf } = await buildTree(rows.map((r) => r.hash));
+      const mine = rows.slice(0, 5);
+      const statement = {
+        type: 'eyeoverthink.receipt.statement',
+        missionId,
+        deliverableSha256,
+        merkleRoot: root,
+        size: rows.length,
+        entries: mine.length,
+        issued: now,
+        merkle: 'rfc6962-sha256',
+      };
+      const receipt = {
+        type: 'eyeoverthink.receipt',
+        version: 2,
+        agency: { name: 'EyeOverThink Demo Agency (Browser)', publicKey: pubHex },
+        mission: { id: missionId, mode: 'standard', privacy: 'sealed', score: 0.91, goalSha256 },
+        statement,
+        statementSig: await sign(canonical(statement)),
+        entries: mine.map((r) => ({ ...r, proof: proofOf(r.seq) })),
+      };
+      return { receipt, deliverable };
+    }
+
+    let cleanState = null;
+    const $ = (id) => document.getElementById(id);
+
+    async function runVerify(note = '') {
+      const t0 = performance.now();
+      let parsed;
+      try { parsed = JSON.parse($('receiptInput').value); }
+      catch (e) {
+        $('verdictBanner').className = 'banner fail';
+        $('verdictText').textContent = 'INVALID JSON: ' + e.message;
+        $('checksList').innerHTML = '';
+        return;
+      }
+      const rawDeliv = $('deliverableInput').value;
+      const res = await verifyReceipt(parsed, { deliverable: rawDeliv.length ? rawDeliv : null });
+      const ms = (performance.now() - t0).toFixed(1);
+      $('verdictBanner').className = 'banner ' + (res.ok ? 'ok' : 'fail');
+      $('verdictText').textContent = res.ok ? 'VERIFIED — Every signature, hash, Merkle proof, entry count, and deliverable byte matched' : 'TAMPERING DETECTED — Verification failed';
+      $('verdictTime').textContent = `${ms} ms · offline WebCrypto`;
+      $('attackNote').textContent = note;
+      $('checkCount').textContent = `${res.checks.filter((c) => c.ok).length}/${res.checks.length} passed`;
+      $('checksList').innerHTML = res.checks.map((c) => `
+        <div class="check-row ${c.ok ? 'ok' : 'fail'}">
+          <span class="pill ${c.ok ? 'ok' : 'fail'}">${c.ok ? 'PASS' : 'FAIL'}</span>
+          <div>
+            <div class="name">${c.name.replace(/</g, '&lt;')}</div>
+            <div class="detail">${String(c.detail || '').replace(/</g, '&lt;')}</div>
+          </div>
+        </div>
+      `).join('');
+      $('summaryOut').textContent = JSON.stringify(res.summary || {}, null, 2);
+    }
+
+    function loadState(receipt, deliverable, note) {
+      $('receiptInput').value = JSON.stringify(receipt, null, 2);
+      $('deliverableInput').value = deliverable;
+      runVerify(note);
+    }
+
+    async function init() {
+      try {
+        if (!globalThis.crypto?.subtle) throw new Error('WebCrypto subtle API unavailable (open over https:// or http://localhost)');
+        cleanState = await mintDemoReceipt();
+        loadState(cleanState.receipt, cleanState.deliverable, 'Fresh Ed25519 keypair + 6-entry RFC 6962 Merkle ledger minted in your browser.');
+      } catch (err) {
+        $('verdictBanner').className = 'banner fail';
+        $('verdictText').textContent = 'WebCrypto Ed25519 unavailable in this browser/context: ' + (err?.message || err);
+        $('verdictTime').textContent = 'requires modern browser + https/localhost';
+      }
+    }
+
+    const cloneClean = () => JSON.parse(JSON.stringify(cleanState.receipt));
+    $('btnReset').onclick = () => loadState(cloneClean(), cleanState.deliverable, 'Restored intact signed receipt.');
+    $('btnMint').onclick = () => init();
+    $('btnVerify').onclick = () => runVerify('Verified custom/edited receipt JSON.');
+    $('btnFlipByte').onclick = () => loadState(cloneClean(), cleanState.deliverable + ' ', 'Attack 1: Appended a single trailing space to the deliverable.');
+    $('btnInflateScore').onclick = () => {
+      const r = cloneClean();
+      r.entries.find((e) => e.kind === 'mission.complete').data.score = 1.0;
+      loadState(r, cleanState.deliverable, 'Attack 2: Quietly inflated critic score from 0.91 to 1.00 inside mission.complete.');
+    };
+    $('btnStripEntry').onclick = () => {
+      const r = cloneClean();
+      r.entries = r.entries.filter((e) => e.kind !== 'edge.inference');
+      loadState(r, cleanState.deliverable, 'Attack 3 (Audit C3): Deleted the edge.inference (IN_CLOUD) entry to pretend no cloud call occurred.');
+    };
+    $('btnDupEntry').onclick = () => {
+      const r = cloneClean();
+      r.entries = r.entries.filter((e) => e.kind !== 'edge.inference');
+      r.entries.push(JSON.parse(JSON.stringify(r.entries[0])));
+      loadState(r, cleanState.deliverable, 'Attack 4 (Audit C3): Stripped IN_CLOUD and duplicated entry #1 to keep entries.length equal.');
+    };
+    $('btnForgeProof').onclick = () => {
+      const r = cloneClean();
+      r.entries[0].proof[0].hash = 'f'.repeat(64);
+      loadState(r, cleanState.deliverable, 'Attack 5: Replaced a sibling hash in entry #1 Merkle proof.');
+    };
+    $('btnSwapKey').onclick = () => {
+      const r = cloneClean();
+      r.agency.publicKey = 'a'.repeat(64);
+      loadState(r, cleanState.deliverable, 'Attack 6: Swapped agency.publicKey to an attacker-controlled key.');
+    };
+
+    init();
+  </script>
+</body>
+</html>

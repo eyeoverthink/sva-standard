@@ -1,0 +1,42 @@
+{
+  "specVersion": "sva-conformance/1.1",
+  "date": "2026-11-26",
+  "repository": "https://github.com/eyeoverthink/sva-standard",
+  "goldenSuite": {
+    "totalVectors": 70,
+    "breakdown": {
+      "jcs": 10,
+      "merkle": 10,
+      "aer1": 15,
+      "vsc1": 13,
+      "ema1": 14,
+      "wasm_exec": 8
+    }
+  },
+  "triRuntimeResults": [
+    {
+      "runtime": "node:v24.11.1 (node:crypto + V8 WebAssembly)",
+      "dependencies": 0,
+      "passed": 70,
+      "total": 70,
+      "failed": 0,
+      "durationMs": 25.42
+    },
+    {
+      "runtime": "W3C WebCrypto (globalThis.crypto.subtle + WebAssembly, zero node:crypto)",
+      "dependencies": 0,
+      "passed": 70,
+      "total": 70,
+      "failed": 0,
+      "durationMs": 36.66
+    },
+    {
+      "runtime": "java:25.0.1 (single-file pure JDK + fuel-metered pure-Java WASM VM)",
+      "dependencies": 0,
+      "passed": 70,
+      "total": 70,
+      "failed": 0,
+      "durationMs": 249.47
+    }
+  ]
+}

@@ -1,0 +1,3341 @@
+{
+  "specVersion": "sva-conformance/1.1",
+  "generatedWith": "node:v24.11.1",
+  "total": 70,
+  "suites": {
+    "jcs": 10,
+    "merkle": 10,
+    "aer1": 15,
+    "vsc1": 13,
+    "ema1": 14,
+    "wasm_exec": 8
+  },
+  "vectors": [
+    {
+      "id": "jcs-01",
+      "suite": "jcs",
+      "description": "Object key sorting",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "b": 1,
+          "a": 2,
+          "c": 0
+        },
+        "expected": "{\"a\":2,\"b\":1,\"c\":0}"
+      }
+    },
+    {
+      "id": "jcs-02",
+      "suite": "jcs",
+      "description": "Nested objects and arrays preserve array order",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "z": [
+            3,
+            {
+              "b": true,
+              "a": null
+            },
+            1
+          ],
+          "a": "ok"
+        },
+        "expected": "{\"a\":\"ok\",\"z\":[3,{\"a\":null,\"b\":true},1]}"
+      }
+    },
+    {
+      "id": "jcs-03",
+      "suite": "jcs",
+      "description": "Empty containers",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "b": [],
+          "a": {}
+        },
+        "expected": "{\"a\":{},\"b\":[]}"
+      }
+    },
+    {
+      "id": "jcs-04",
+      "suite": "jcs",
+      "description": "String escaping (quotes, backslash, newline, tab)",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "msg": "hi \"world\"\\\n\tend"
+        },
+        "expected": "{\"msg\":\"hi \\\"world\\\"\\\\\\n\\tend\"}"
+      }
+    },
+    {
+      "id": "jcs-05",
+      "suite": "jcs",
+      "description": "Negative zero from raw JSON normalizes to 0",
+      "expectOk": true,
+      "input": {
+        "rawJson": "{\"n\":-0,\"p\":0}",
+        "expected": "{\"n\":0,\"p\":0}"
+      }
+    },
+    {
+      "id": "jcs-06",
+      "suite": "jcs",
+      "description": "UTF-16 key code-unit sort order",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "0": 3,
+          "a": 1,
+          "Z": 2,
+          "_": 4
+        },
+        "expected": "{\"0\":3,\"Z\":2,\"_\":4,\"a\":1}"
+      }
+    },
+    {
+      "id": "jcs-07",
+      "suite": "jcs",
+      "description": "Unicode BMP characters and brackets",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "ph": "⟦EMAIL_1⟧",
+          "euro": "€100"
+        },
+        "expected": "{\"euro\":\"€100\",\"ph\":\"⟦EMAIL_1⟧\"}"
+      }
+    },
+    {
+      "id": "jcs-08",
+      "suite": "jcs",
+      "description": "Booleans, null, integers, decimals",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "f": false,
+          "t": true,
+          "n": null,
+          "i": -42,
+          "d": 3.14159
+        },
+        "expected": "{\"d\":3.14159,\"f\":false,\"i\":-42,\"n\":null,\"t\":true}"
+      }
+    },
+    {
+      "id": "jcs-09",
+      "suite": "jcs",
+      "description": "RFC 8785 small decimals stay plain down to 1e-6 and switch at 1e-7",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "a": 0.0001,
+          "b": 0.00001,
+          "c": 0.000001,
+          "d": 1e-7
+        },
+        "expected": "{\"a\":0.0001,\"b\":0.00001,\"c\":0.000001,\"d\":1e-7}"
+      }
+    },
+    {
+      "id": "jcs-10",
+      "suite": "jcs",
+      "description": "RFC 8785 large numbers stay plain up to 1e20 and switch at 1e21",
+      "expectOk": true,
+      "input": {
+        "value": {
+          "a": 1000000000000000,
+          "b": 100000000000000000000,
+          "c": 1e+21,
+          "d": 1.5e+21
+        },
+        "expected": "{\"a\":1000000000000000,\"b\":100000000000000000000,\"c\":1e+21,\"d\":1.5e+21}"
+      }
+    },
+    {
+      "id": "merkle-01",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=1 of size=1)",
+      "expectOk": true,
+      "input": {
+        "leaf": "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+        "seq": 1,
+        "size": 1,
+        "root": "1e5b16c2ed3be8602ace1d6c410e45982a15a123ec3a6701a4736fceb924b33e",
+        "path": []
+      }
+    },
+    {
+      "id": "merkle-02",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=2 of size=2)",
+      "expectOk": true,
+      "input": {
+        "leaf": "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a",
+        "seq": 2,
+        "size": 2,
+        "root": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+        "path": [
+          {
+            "hash": "1e5b16c2ed3be8602ace1d6c410e45982a15a123ec3a6701a4736fceb924b33e",
+            "left": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-03",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=3 of size=3)",
+      "expectOk": true,
+      "input": {
+        "leaf": "9fde56c376760bd399b82eb8569229a2dff19219411ac71154dfeab2cf502454",
+        "seq": 3,
+        "size": 3,
+        "root": "d84ae5a17d66ea8feb24ed01cb30ba84b51cbae0661c046d2feff3634710ab2b",
+        "path": [
+          {
+            "hash": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+            "left": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-04",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=2 of size=4)",
+      "expectOk": true,
+      "input": {
+        "leaf": "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a",
+        "seq": 2,
+        "size": 4,
+        "root": "60a3b463ab84ae1390f7ce3f4d37959d64637a1ce730cb1d5fae66e6df3f86ec",
+        "path": [
+          {
+            "hash": "1e5b16c2ed3be8602ace1d6c410e45982a15a123ec3a6701a4736fceb924b33e",
+            "left": true
+          },
+          {
+            "hash": "bb777a4558b26df771de41b334ebbb75ac4c7e36d27fd2248c629389e90ebfd8",
+            "left": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-05",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=5 of size=5)",
+      "expectOk": true,
+      "input": {
+        "leaf": "fb1ec199d052a3ce6d141a28c2d706a51b99f09c2a8d61243062a046f06b68f1",
+        "seq": 5,
+        "size": 5,
+        "root": "26fd301e268dca9fafb26ca7a918483faff8ff18799527ade72c492cd7e371bf",
+        "path": [
+          {
+            "hash": "60a3b463ab84ae1390f7ce3f4d37959d64637a1ce730cb1d5fae66e6df3f86ec",
+            "left": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-06",
+      "suite": "merkle",
+      "description": "Valid RFC 6962 inclusion proof (seq=4 of size=7)",
+      "expectOk": true,
+      "input": {
+        "leaf": "697f943b9ec5f90eddda8ae7473f5eb688187e3467f312fefa8677dde255042c",
+        "seq": 4,
+        "size": 7,
+        "root": "330365808faea9ad4d1f74335bfab4fc03d418dcd05d7c22749f9e714fcdc3c8",
+        "path": [
+          {
+            "hash": "7b40a9e249bd8f4db005bc396335fe50beccd350986be83911d5bc278fdfdfb3",
+            "left": true
+          },
+          {
+            "hash": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+            "left": true
+          },
+          {
+            "hash": "8bcdfc343a5826eac47793377096ec7d5af188418abe3e0b3431ad7be467b478",
+            "left": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-07",
+      "suite": "merkle",
+      "description": "CVE-2012-2459 odd-leaf duplication collision rejected (size 3 root != duplicated size 4)",
+      "expectOk": false,
+      "input": {
+        "leaf": "9fde56c376760bd399b82eb8569229a2dff19219411ac71154dfeab2cf502454",
+        "seq": 4,
+        "size": 4,
+        "root": "d84ae5a17d66ea8feb24ed01cb30ba84b51cbae0661c046d2feff3634710ab2b",
+        "path": [
+          {
+            "hash": "7b40a9e249bd8f4db005bc396335fe50beccd350986be83911d5bc278fdfdfb3",
+            "left": true
+          },
+          {
+            "hash": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+            "left": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-08",
+      "suite": "merkle",
+      "description": "RFC 6962 0x00/0x01 domain separation blocks internal-node-as-leaf forgery",
+      "expectOk": false,
+      "input": {
+        "leaf": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+        "seq": 1,
+        "size": 1,
+        "root": "a022609261f5a33147ed85abd3595b2e4476113edecab088c6ddad91048b63ab",
+        "path": []
+      }
+    },
+    {
+      "id": "merkle-09",
+      "suite": "merkle",
+      "description": "Flipped step.left orientation rejected",
+      "expectOk": false,
+      "input": {
+        "leaf": "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+        "seq": 1,
+        "size": 3,
+        "root": "d84ae5a17d66ea8feb24ed01cb30ba84b51cbae0661c046d2feff3634710ab2b",
+        "path": [
+          {
+            "hash": "9d87463b71085ae18cf27a49bf40177a8c7a7cee4e8a47837048ba18a02c6457",
+            "left": true
+          },
+          {
+            "hash": "7b40a9e249bd8f4db005bc396335fe50beccd350986be83911d5bc278fdfdfb3",
+            "left": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "merkle-10",
+      "suite": "merkle",
+      "description": "Truncated proof depth rejected",
+      "expectOk": false,
+      "input": {
+        "leaf": "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+        "seq": 1,
+        "size": 3,
+        "root": "d84ae5a17d66ea8feb24ed01cb30ba84b51cbae0661c046d2feff3634710ab2b",
+        "path": [
+          {
+            "hash": "9d87463b71085ae18cf27a49bf40177a8c7a7cee4e8a47837048ba18a02c6457",
+            "left": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "aer-01",
+      "suite": "aer1",
+      "description": "Valid 3-entry AER/1 receipt in 5-entry ledger with deliverable check",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-02",
+      "suite": "aer1",
+      "description": "Valid AER/1 receipt verified without optional deliverable",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": null
+      }
+    },
+    {
+      "id": "aer-03",
+      "suite": "aer1",
+      "description": "Valid single-entry AER/1 receipt (size=1, empty Merkle path)",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_single",
+            "deliverableSha256": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+            "merkleRoot": "a5ec6b020990a60cac0942547a9c8fcbce3aff6f1b7accc5dc023827aa6759c5",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "651cfcd06f75f2b02fe648d4feeb4c70d4cd4007ce900b1e7e22f8fb10184f86828796a8789d398b5d8c124b64d434615ac708232c85f6a3e067fde82169bf04",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_single",
+                "score": 1,
+                "resultHash": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2d901dc6dfe35ac955d53cb841182111a2825799829712abcde528bb0229ae9f",
+              "sig": "7f2d9319609efb5ddeaa92a54c1b2173954d0cd0c094d021c1bc4a1053eb0717c8bfefebfd41596b1bc04aa41eeb1f1371a67cdb10a4aad0318e24b095049603",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        },
+        "deliverable": "42"
+      }
+    },
+    {
+      "id": "aer-04",
+      "suite": "aer1",
+      "description": "Valid AER/1 receipt with clock.status=unattested",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_unatt",
+            "deliverableSha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+            "merkleRoot": "62c6ea8f048aef59d37be9d5f4704e3f856173e830ad755f98862d1922690082",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "unattested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "3306372dda5d4db1c074292300272f8dcbfd034757800913912d5b14b2272f6c40550ac5d125ec8388a6f2cd510d77b0fc5e23fd7c1b6dc6481499671136c705",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_unatt",
+                "score": 0.9,
+                "resultHash": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "b99b818297b581eb3eeb7a7491057a93c6deacf5d1f3f5f58c966154d63472aa",
+              "sig": "4cecd69a6ab84c664ad4a49829b7867cc3f1a9d0843f4b0aef1a5db42b73bb21c376b909967dd5da4fa7ffb742a831c59cb0cc38de2f7959ada02d270a55220b",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        },
+        "deliverable": "ok"
+      }
+    },
+    {
+      "id": "aer-05",
+      "suite": "aer1",
+      "description": "Valid AER/1 receipt with clock.status=drift and key B",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_drift",
+            "deliverableSha256": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da",
+            "merkleRoot": "2fb87cd080896bb4f6ee48e234d7b0fcbf72c46adc228186d63bd1aa4b73669e",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "drift",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "f47e26301c7161b7bb7a450ec3178fd06b61a7bb2e437adbf01e8439d7cfb2b039722e589ffc0071dd7646df59d07b75b71d82293f592cdee5df32bcb493f40d",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "tycho",
+              "data": {
+                "missionId": "ms_drift",
+                "tool": "calc"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "sig": "ea29bbd487f5ac67d9ad83f2e771a3aff1262eff8c57955b9c17c483c5c16715e81c7184589234119178942fae9b870af16557a0c5c7a0a294bca12b33e3ef08",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "58101019cc3636c10086cacdc9dafc781afb724e9a784594e2af59aece894630",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_drift",
+                "score": 0.88,
+                "resultHash": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da"
+              },
+              "prev": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "hash": "35eebd32d520d1aa4e1e486c916b930e8209925ef7ba5f6a16a0fd9f0fd988dd",
+              "sig": "aa92eb7e6cb76783a6c2ac84466d26da238f1d3a51f1f5702e7a4755208bc2acd8e2f6c4a85e9e8c54893e498de356e823591747de47ddd994d967270593a701",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "2a43bd63d966c9c9c38dc2836b16c1c38a8f9d4c7ac40eeb954f255bc2725d5c",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "drift-ok"
+      }
+    },
+    {
+      "id": "aer-06",
+      "suite": "aer1",
+      "description": "Valid AER/1 receipt with ON_DEVICE + membrane.crossing entries",
+      "expectOk": true,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_hybrid",
+            "deliverableSha256": "57f9e5c7fc4234ffaf625c1829a8ad994a1940bc63537b711bdf57829159b4ea",
+            "merkleRoot": "b89ecc04d49f4510639c38beae07e2dc945eecea71ca13f1bf5c19c0226ac044",
+            "merkle": "rfc6962-sha256",
+            "size": 4,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "fe8243c53ab6f1c3c08d957b3db54ec1affa2af73398d6c8e31aeb118eefc8ccf0d7c49a4ff47bdc035fa2e061d1faf0c2fb31afe93fdcbd0588024eb74caf00",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "membrane.crossing",
+              "actor": "membrane",
+              "data": {
+                "missionId": "ms_hybrid",
+                "total": 2
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "dc1bf91873e4d4638c3d4809d1b2ee8f04fb10c523837c0d0fea1281e3dc4787",
+              "sig": "b6c971aeb1bc18a764c88d743eb4f57b0f689be95370794411751c250d452223c2526a706ca4a126e9c93e6cac0dc17fe9651fdcad5fb8bf1b68904b32cc6a0b",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "7fa1d35214ebbcbdbcc84f6d52f3037eaf2dea1d0ec919369325cce8202265ed",
+                  "left": false
+                },
+                {
+                  "hash": "ba6de61355d98f8dda9589f457a4734c1d620b5d213b1ef4fab5489c74f409f4",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_hybrid",
+                "inferenceSource": "ON_DEVICE"
+              },
+              "prev": "dc1bf91873e4d4638c3d4809d1b2ee8f04fb10c523837c0d0fea1281e3dc4787",
+              "hash": "a52c4ce9b067bbb86f2049e9036a5f7d9ebe87b68f8d779c295e0df58c0080d6",
+              "sig": "e6476e27a564abf299a57bbe7a8996e0e8359672e4884c59ead6ed48d5c3b3d2313406c2f42f4a42efdfe0af7ff60ecfed0a4f62fc41b264a028a6d66c3b9a0e",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4bcbc0f3cb23953326c2a0ab56db9ab87b6d8d5f0d6a4b0ef19acd19b13c1736",
+                  "left": true
+                },
+                {
+                  "hash": "ba6de61355d98f8dda9589f457a4734c1d620b5d213b1ef4fab5489c74f409f4",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_hybrid",
+                "score": 0.95,
+                "resultHash": "57f9e5c7fc4234ffaf625c1829a8ad994a1940bc63537b711bdf57829159b4ea"
+              },
+              "prev": "a52c4ce9b067bbb86f2049e9036a5f7d9ebe87b68f8d779c295e0df58c0080d6",
+              "hash": "543b85384e68723c8f5ad2dbff2f62292232ed670d7467a9045e319d455aa796",
+              "sig": "85721115959c7385165244531bf6ce6d924e721d03c97a3d8a7df611bc95ab1908a1be1233e70293ba0e725bac20f12697cd119a57459929c2faff4d6f773a01",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64807201b7d15e7222a7994caff94aad4d7ad2915a23b444dfbac4ec0149dd06",
+                  "left": false
+                },
+                {
+                  "hash": "dd1d9bbe81d0682bcd4c94b386692c43a4f13584388d1c7ad8c2e716fbef86e6",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "hybrid-ok"
+      }
+    },
+    {
+      "id": "aer-07",
+      "suite": "aer1",
+      "description": "Deliverable modified by 1 trailing space rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00 "
+      }
+    },
+    {
+      "id": "aer-08",
+      "suite": "aer1",
+      "description": "Inflated critic score inside entry data rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 1,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-09",
+      "suite": "aer1",
+      "description": "Swapped entry signature rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-10",
+      "suite": "aer1",
+      "description": "Stripped IN_CLOUD entry rejected (statement.entries completeness)",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-11",
+      "suite": "aer1",
+      "description": "Stripped + duplicated entry seq rejected (uniqueness)",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-12",
+      "suite": "aer1",
+      "description": "Forged Merkle proof sibling hash rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-13",
+      "suite": "aer1",
+      "description": "Swapped agency public key rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-14",
+      "suite": "aer1",
+      "description": "Invalid clock status & broken statementSig rejected",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "fabricated",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "e85aecd8774cc8cb0a3edac96813ed597e36bf7f4fb8b7845309bb6f057835350a34bd6b60bfa58aea0eef8868889d0092e16a310f68463a0773e2e4250abd0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "aer-15",
+      "suite": "aer1",
+      "description": "Empty string clock.issuedAt rejected even when validly signed",
+      "expectOk": false,
+      "input": {
+        "receipt": {
+          "spec": "aer/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "aer.statement",
+            "missionId": "ms_001",
+            "deliverableSha256": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6",
+            "merkleRoot": "fad5b21a38d5a1a2ffa20296ea040ff03f3ea0aef1f10b97306565ae63789947",
+            "merkle": "rfc6962-sha256",
+            "size": 5,
+            "entries": 3,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "bac563012a3043be74b9d6896e4cc1e6a0dbb6500973cd9c42e49284ca6850fe0dc204838b5ce2361d2c4feaf1fb465e2b3da27cf6c829add611a12178cce900",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.create",
+              "actor": "operator",
+              "data": {
+                "id": "ms_001",
+                "privacy": "sealed"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "sig": "41c484d25f2cbf87065f28bc4023872c43e0e248c4218ec5772aa1fde5164c359b043b5ae24db70be43e005f3fa2ae96acc58429f82582062e25ff7c83d85006",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "1accdaed7b1bb51053a20483f46049fd036b8ed51eef5b0f8639f2b535b76dfb",
+                  "left": false
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "edge.inference",
+              "actor": "edge",
+              "data": {
+                "missionId": "ms_001",
+                "inferenceSource": "IN_CLOUD"
+              },
+              "prev": "2448dca29621c547e395c2a894deca62187763e34b4ddc78c4c88c9645ae8fea",
+              "hash": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "sig": "06cc670daa330f1a67b7970027a185aeea842c0f9fd35c2be40560921c2daac6ed8cfa61d5a0ae01edc97104c27837e321ea1a49e3d51989ec695381efec4403",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "64e7b849f3d56d5f5eaa75e5a2bdbd537f4f79668e3c71e9150e2445def19cb3",
+                  "left": true
+                },
+                {
+                  "hash": "17b3a8f2ab653e7d86f8e5421ddd291b1b042224edae466c8d6764effb4f1e2e",
+                  "left": false
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 3,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_001",
+                "score": 0.92,
+                "resultHash": "b90eb2cb61ae26f814a06c512c432b009bfbeecae00e2b93139cfa48eb2260f6"
+              },
+              "prev": "2d26cf27f5fc38b49d5c3dc4a938242df0027b33defe1a4c4e96e26f9cb57b45",
+              "hash": "a4462057c60613e88df49b378a7bf4eb71e1cb3f22d9b4106fca37e65148c502",
+              "sig": "f487cabd1ceec29a50bdfa75510002741937eb4fc8a200ce3ba9105e91a4fdd5627aa4bb53789974bc4cec86d250ec33336086210313a248772d653b3a442906",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "4d6bde4f59da65a5888b42f3a35ad48ccd2c208d3f791d5454c1a585f95f54d4",
+                  "left": false
+                },
+                {
+                  "hash": "bf8046f9bda139e9cb1cb2ef3e97f010700674bd8587dd41ddde79f2442af4e5",
+                  "left": true
+                },
+                {
+                  "hash": "564b138328e93e824071983504ecf2e3591dcb7674d4dcc9c23a316816c4119f",
+                  "left": false
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "# Verified Report\nTotal: 162.00"
+      }
+    },
+    {
+      "id": "vsc-01",
+      "suite": "vsc1",
+      "description": "Valid js-pure-es2022 VSC/1 capsule",
+      "expectOk": true,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "9a3ddd5b670785c3fa55ca0781b5ab8551552e77af7926a240fdf27b81e2d2cddfec2220471f1a040518ba540af2673e2fbc7d9f731c80bf10a3eee927953b04"
+      }
+    },
+    {
+      "id": "vsc-02",
+      "suite": "vsc1",
+      "description": "Valid wasm-core-1 VSC/1 capsule with valid WASM magic header",
+      "expectOk": true,
+      "input": {
+        "spec": "vsc/1",
+        "name": "wasm_adder",
+        "version": "1.0.0",
+        "runtime": "wasm-core-1",
+        "encoding": "base64",
+        "code": "AGFzbQEAAAA=",
+        "codeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "e6d99847fccd41fdef749bcb9b8d3774bead80b5bd61ff4109a32170985dd4b6732b9272ba71985dd57787a5f3135ee6f36c90e8c86993621c2592a0f534610b"
+      }
+    },
+    {
+      "id": "vsc-03",
+      "suite": "vsc1",
+      "description": "Valid vsc-revoke/1 counterexample tombstone",
+      "expectOk": true,
+      "input": {
+        "spec": "vsc-revoke/1",
+        "targetCodeSha256": "3e040cd04368a9db090103fb37d3d48443ba8fa017db91d8ba01c48dabf8c323",
+        "kind": "wrong_output",
+        "counterexample": {
+          "input": {
+            "price": 100,
+            "d1": 0.2,
+            "d2": 0.1
+          },
+          "expected": 72,
+          "observed": 70
+        },
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "sig": "b6324723fab61f97d1c047b9f82b82d9394a269246fbc8a67a59ea24f9130fd26e5a1ece76c8e7ba1f134d822f1bb94a8f13bf982492468af0e9c4d7e4df5b01"
+      }
+    },
+    {
+      "id": "vsc-04",
+      "suite": "vsc1",
+      "description": "Missing signature (sig: null) rejected (Audit C2)",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": null
+      }
+    },
+    {
+      "id": "vsc-05",
+      "suite": "vsc1",
+      "description": "Tampered code rejected (codeSha256 + sig mismatch)",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main(){return 0;}",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "9a3ddd5b670785c3fa55ca0781b5ab8551552e77af7926a240fdf27b81e2d2cddfec2220471f1a040518ba540af2673e2fbc7d9f731c80bf10a3eee927953b04"
+      }
+    },
+    {
+      "id": "vsc-06",
+      "suite": "vsc1",
+      "description": "Tampered params rejected (signature mismatch)",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "x"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "9a3ddd5b670785c3fa55ca0781b5ab8551552e77af7926a240fdf27b81e2d2cddfec2220471f1a040518ba540af2673e2fbc7d9f731c80bf10a3eee927953b04"
+      }
+    },
+    {
+      "id": "vsc-07",
+      "suite": "vsc1",
+      "description": "Non-empty capabilities array rejected (capability-free rule)",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [
+          "net:egress"
+        ],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "82a84230b148e8d24da1763aaa89b8efb83b402b625578339e1834d78292a3bcbabffd9e8776277da356ac2cb81574262268432631721cd9c13ce0dcee5d3c0a"
+      }
+    },
+    {
+      "id": "vsc-08",
+      "suite": "vsc1",
+      "description": "Unsupported runtime shell-bash rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "sequential_discount",
+        "version": "1.0.0",
+        "runtime": "shell-bash",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "bb6ee1d703fa2ff555904e5f543668b30a31886f0f84a4b598369d8a8e28c5b3a3e87f819090af54af344c9462c8227c8955d811f632eee77ba85d37fa055803"
+      }
+    },
+    {
+      "id": "vsc-09",
+      "suite": "vsc1",
+      "description": "Invalid WASM magic header rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "bad_wasm",
+        "version": "1.0.0",
+        "runtime": "wasm-core-1",
+        "encoding": "base64",
+        "code": "3q2+7wEAAAA=",
+        "codeSha256": "fdc6ffa306bcd8ffe40163a9dc17f16ef7110b82b4c053546b2948ce2c259e6e",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "6f60d541e234eea4a94387ca157961d04801b216a70d8428858cb18faf3288bf7834a2d56ab44177eca24377bfde2fcea2d297a327602b0df3032ea09a2b0707"
+      }
+    },
+    {
+      "id": "vsc-10",
+      "suite": "vsc1",
+      "description": "Prototype-pollution skill name __proto__ rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "__proto__",
+        "version": "1.0.0",
+        "runtime": "js-pure-es2022",
+        "encoding": "utf8",
+        "code": "function main({ price, d1, d2 }) { return Math.round(price * (1 - d1) * (1 - d2) * 100) / 100; }",
+        "codeSha256": "c590561043411203dda619a4ef20e85defae4ec98016fd604ee3ea70384e23c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "f39fede8eba7441d31808caf3b8df9565a16f9d6d64b3d7b60078338ba67a928c40fb5f37e8276b99b2f625afac6d8035fb6b651dc7784bda3665aad8e6bc60c"
+      }
+    },
+    {
+      "id": "vsc-11",
+      "suite": "vsc1",
+      "description": "vsc-revoke/1 tombstone missing counterexample.input rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc-revoke/1",
+        "targetCodeSha256": "3e040cd04368a9db090103fb37d3d48443ba8fa017db91d8ba01c48dabf8c323",
+        "kind": "wrong_output",
+        "counterexample": {},
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "sig": "d8b7ef57fe5ff81de236bef767e1ea286d3e11b5ef2ce9f50d42bccd0eb38c9c342d3e1ebed2378111824a125a225c14444bad4910c503c96099f6f1e5b57004"
+      }
+    },
+    {
+      "id": "vsc-12",
+      "suite": "vsc1",
+      "description": "Malformed base64 in wasm-core-1 capsule rejected identically across runtimes",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "bad_b64_wasm",
+        "version": "1.0.0",
+        "runtime": "wasm-core-1",
+        "encoding": "base64",
+        "code": "!!!not-valid-base64!!!",
+        "codeSha256": "37d9058dce8cde0993fdea1bcdd9f22b1767213f8a229d73e7ae0cfcc0eeb2c2",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "01e11c304e50d5c20da15f35668fd8c8349c819e0fef24c43a8fc98d50488c4a4a34207ce581fdd1aa71477c9c74defbaf6fcf1d205e2065d0aa394a5530de03"
+      }
+    },
+    {
+      "id": "vsc-13",
+      "suite": "vsc1",
+      "description": "Mismatched runtime/encoding (wasm-core-1 with utf8) rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc/1",
+        "name": "wasm_utf8_mismatch",
+        "version": "1.0.0",
+        "runtime": "wasm-core-1",
+        "encoding": "utf8",
+        "code": "\u0000asm\u0001\u0000\u0000\u0000",
+        "codeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "params": {
+          "type": "object",
+          "required": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        "tests": [
+          {
+            "input": {
+              "price": 100,
+              "d1": 0.2,
+              "d2": 0.1
+            },
+            "output": 72
+          }
+        ],
+        "capabilities": [],
+        "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "b1e4bd6c7f42956e1cde9d01b7f515d15b4ea82867f86adfd796d021de70ab332168145521ed32539dd1be343ed2d74eb3a3279a27b753259f6c9b4f92edc006"
+      }
+    },
+    {
+      "id": "ema-01",
+      "suite": "ema1",
+      "description": "Valid SEALED_EGRESS attestation with verified HMAC tags and clean payload",
+      "expectOk": true,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "23c82e1f2f63abae06315bb45230989d417e26944e07d69f0c27f963fb4278eb06b2ce2323dfd9860c6595d656a830f895d419fb2df8ebceae2aa7cbad75a901"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-02",
+      "suite": "ema1",
+      "description": "Valid ONLY_ON_DEVICE attestation with 0 egress bytes and airgap NIC=0 proof",
+      "expectOk": true,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "ONLY_ON_DEVICE",
+          "provider": "local-ollama",
+          "model": "llama3.2:latest",
+          "outboundSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "egressBytes": 0,
+          "withheld": {},
+          "totalWithheld": 0,
+          "tags": [],
+          "audit": "clean",
+          "strictNer": true,
+          "airgap": {
+            "networkInterfaces": 0,
+            "verified": true
+          },
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "ab3f1c50dd8db33bb4aaf2ded71236320ff65addb2db7d8139fa2a4011c2ad0555e7cc8f01673454a05dff7e7e3d9ae1032b9f0945d5677cb2cd0183262a930d"
+        },
+        "outboundPayload": "",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": []
+      }
+    },
+    {
+      "id": "ema-03",
+      "suite": "ema1",
+      "description": "Valid SEALED_EGRESS verified without local secret key (wire-only mode)",
+      "expectOk": true,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "23c82e1f2f63abae06315bb45230989d417e26944e07d69f0c27f963fb4278eb06b2ce2323dfd9860c6595d656a830f895d419fb2df8ebceae2aa7cbad75a901"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": null,
+        "originals": []
+      }
+    },
+    {
+      "id": "ema-04",
+      "suite": "ema1",
+      "description": "Valid SEALED_EGRESS with phone number normalized safely absent",
+      "expectOk": true,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "53f96b03ca7273cca35a5d0cbdbc849dd5964f3ecb7b87d91218305f127de289",
+          "egressBytes": 31,
+          "withheld": {
+            "PHONE": 1
+          },
+          "totalWithheld": 1,
+          "tags": [
+            {
+              "type": "PHONE",
+              "tag": "395ad8c66ae89eed"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "1d6e5f310e7c43d998a69dd2a9a73c7bf6807e2325672e99f63f01a421c9d264d1f6c4653f6d9054253065434907c17d6e5f2a568f57d002e422030300b30404"
+        },
+        "outboundPayload": "Call ⟦PHONE_1⟧ immediately.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PHONE",
+            "value": "+1 (512) 555-0194"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-05",
+      "suite": "ema1",
+      "description": "Outbound payload modified after attestation rejected (outboundSha256 mismatch)",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "23c82e1f2f63abae06315bb45230989d417e26944e07d69f0c27f963fb4278eb06b2ce2323dfd9860c6595d656a830f895d419fb2df8ebceae2aa7cbad75a901"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧. extra",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-06",
+      "suite": "ema1",
+      "description": "Forged EMA/1 Ed25519 signature rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-07",
+      "suite": "ema1",
+      "description": "Tampered HMAC correlation tag rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "deadbeef01234567"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "23c82e1f2f63abae06315bb45230989d417e26944e07d69f0c27f963fb4278eb06b2ce2323dfd9860c6595d656a830f895d419fb2df8ebceae2aa7cbad75a901"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-08",
+      "suite": "ema1",
+      "description": "Raw plaintext email leak in outbound payload caught by audit",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "d7b76aa9dbaec8d3b7da5ffb863589ad1d4158c9bb69c30bbb8f60ffe13a10b0",
+          "egressBytes": 58,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "a6e4d48fc591f21ad5aeb8a7da3acbe1eac44342115dc1666a3d921bdad1489a3cb1bf51e8aaec9508ac349729acff43e908ac2f65c8f8edbab3d4817992ab0f"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ leaked elena@northstar.org in body.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-09",
+      "suite": "ema1",
+      "description": "Digit-squeezed SSN leak (123456789) caught by egress audit",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "9136301212fb436cf2982c4a584a30193602e24009945e3fc7732abed01bf8b6",
+          "egressBytes": 62,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "11feddb1e02cffdddb3eaae052773704a75a101e5d5e522df9e20cda6d47113f3bd6a32977b4d7dbb90d5db21c8302c88eed4cf804cf4bf2cdeea5d46649cb03"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ digits 123456789 leaked without dashes.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-10",
+      "suite": "ema1",
+      "description": "Non-clean audit status rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "PERSON": 1,
+            "SSN": 1,
+            "EMAIL": 1
+          },
+          "totalWithheld": 3,
+          "tags": [
+            {
+              "type": "PERSON",
+              "tag": "d5851de18809a429"
+            },
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            },
+            {
+              "type": "EMAIL",
+              "tag": "af82eda52888ae29"
+            }
+          ],
+          "audit": "leaked",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "b08d033bf618faf49e2020b5bc2c936eeee4803d53964f3542502c5c4dccd601d702ec2de047ea212a9e0a171690b6d18552a3c4a7b1350547313a5855986108"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "PERSON",
+            "value": "Dr. Elena Morales"
+          },
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          },
+          {
+            "type": "EMAIL",
+            "value": "elena@northstar.org"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-11",
+      "suite": "ema1",
+      "description": "ONLY_ON_DEVICE with egressBytes > 0 or non-zero NICs rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "ONLY_ON_DEVICE",
+          "provider": "local-ollama",
+          "model": "llama3.2:latest",
+          "outboundSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "egressBytes": 12,
+          "withheld": {},
+          "totalWithheld": 0,
+          "tags": [],
+          "audit": "clean",
+          "strictNer": true,
+          "airgap": {
+            "networkInterfaces": 2,
+            "verified": false
+          },
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "201d08d2effe62f9fd5c544b037c4f4a4191713b103e18050f76b4480f0370721f3817ab7fe0da6aaa5c2ea33fbe02852dd101727c213860bd68cf542315fb03"
+        },
+        "outboundPayload": "",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": []
+      }
+    },
+    {
+      "id": "ema-12",
+      "suite": "ema1",
+      "description": "64-bit 2^32 egressBytes / networkInterfaces does NOT truncate to 0 in Java",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "ONLY_ON_DEVICE",
+          "provider": "local-ollama",
+          "model": "llama3.2:latest",
+          "outboundSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "egressBytes": 4294967296,
+          "withheld": {},
+          "totalWithheld": 0,
+          "tags": [],
+          "audit": "clean",
+          "strictNer": true,
+          "airgap": {
+            "networkInterfaces": 4294967296,
+            "verified": true
+          },
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "e3c664b49cfe53bd821eec5216f48da9f10ee9ef7b95901ff59e85d6b777666d366aebb65969e3e1e86e5e45be2ef485afaf6c434d314b3f2afada8473a71900"
+        },
+        "outboundPayload": "",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": []
+      }
+    },
+    {
+      "id": "ema-13",
+      "suite": "ema1",
+      "description": "Negative withheld count cancellation attack rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "EMAIL": -1,
+            "SSN": 1000000001
+          },
+          "totalWithheld": 1,
+          "tags": [
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "de0394a68cc35cba5292ed10a1fcd697e075817ef42e50144858cdda33ccb6f310788e09c50d508f083f468a03dd6d90285eb4a27332b0d4e96aabbf58d88706"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ema-14",
+      "suite": "ema1",
+      "description": "Per-type withheld/tags mismatch (withheld EMAIL vs tag SSN) rejected",
+      "expectOk": false,
+      "input": {
+        "attestation": {
+          "spec": "ema/1",
+          "mode": "SEALED_EGRESS",
+          "provider": "firebase-edge",
+          "model": "gemini-2.5-flash",
+          "outboundSha256": "642a4ed22c00a5782337a7552786dc3aaabd8e391addcd5d2645435c9a2e16e3",
+          "egressBytes": 55,
+          "withheld": {
+            "EMAIL": 1
+          },
+          "totalWithheld": 1,
+          "tags": [
+            {
+              "type": "SSN",
+              "tag": "c3220b1471b53356"
+            }
+          ],
+          "audit": "clean",
+          "strictNer": true,
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "944c6ff17319be5b5074bcdedf3cfc0db3e30a912deeca2ae4a69f7c96de59a8e02f880752f9e2525ceb7fad2893bdf1bb02c6cbb8167556ee53db9664e8ab07"
+        },
+        "outboundPayload": "Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.",
+        "hmacKeyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+        "originals": [
+          {
+            "type": "SSN",
+            "value": "123-45-6789"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wasm-01",
+      "suite": "wasm_exec",
+      "description": "Cross-runtime WASM discount_cents(10000, 20, 10) == 7200 (V8 == WebCrypto == Java)",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_discount_cents",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABCAFgA39/fwF/AwIBAAcIAQRtYWluAAAKHAEaACAAQeQAIAFrbEHkAG1B5AAgAmtsQeQAbQs=",
+          "codeSha256": "fb01be5d56999b13b56ed3ebe4f0eba4a4b4009cbafcb591555a1a4e41c3b4b2",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10000,
+                20,
+                10
+              ],
+              "output": 7200
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "d03a0f997e2c9245ac826b3891e84b7df420f70ce393ca40927a3fd0d723a62904503d4fae60c3c7266d214d6cde614732886b65fcda7ac5f102531896c5df03"
+        },
+        "args": [
+          10000,
+          20,
+          10
+        ],
+        "expectOutput": 7200,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-02",
+      "suite": "wasm_exec",
+      "description": "Cross-runtime WASM discount_cents(24000, 25, 10) == 16200",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_discount_cents",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABCAFgA39/fwF/AwIBAAcIAQRtYWluAAAKHAEaACAAQeQAIAFrbEHkAG1B5AAgAmtsQeQAbQs=",
+          "codeSha256": "fb01be5d56999b13b56ed3ebe4f0eba4a4b4009cbafcb591555a1a4e41c3b4b2",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10000,
+                20,
+                10
+              ],
+              "output": 7200
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "d03a0f997e2c9245ac826b3891e84b7df420f70ce393ca40927a3fd0d723a62904503d4fae60c3c7266d214d6cde614732886b65fcda7ac5f102531896c5df03"
+        },
+        "args": [
+          24000,
+          25,
+          10
+        ],
+        "expectOutput": 16200,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-03",
+      "suite": "wasm_exec",
+      "description": "Cross-runtime WASM tax_and_split(10000, 8, 4) == 2700",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_tax_split",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABCAFgA39/fwF/AwIBAAcIAQRtYWluAAAKFAESACAAQeQAIAFqbEHkAG0gAm0L",
+          "codeSha256": "94416db2355a8f0cdd7274baee0a7eff36a534b1a4ba8a32910dadde223a3829",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10000,
+                8,
+                4
+              ],
+              "output": 2700
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "badd0b2f9f59689dcb7398eca8b40d7c8ce1280e927c462f1b5788b0c254d6d358a40fcb53adcb2b24f78d5bf077be3e957456331fa99c34a646b9eff242c30d"
+        },
+        "args": [
+          10000,
+          8,
+          4
+        ],
+        "expectOutput": 2700,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-04",
+      "suite": "wasm_exec",
+      "description": "Cross-runtime WASM tax_and_split(10000, 8, 0) traps deterministically on divide-by-zero",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_tax_split",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABCAFgA39/fwF/AwIBAAcIAQRtYWluAAAKFAESACAAQeQAIAFqbEHkAG0gAm0L",
+          "codeSha256": "94416db2355a8f0cdd7274baee0a7eff36a534b1a4ba8a32910dadde223a3829",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10000,
+                8,
+                4
+              ],
+              "output": 2700
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "badd0b2f9f59689dcb7398eca8b40d7c8ce1280e927c462f1b5788b0c254d6d358a40fcb53adcb2b24f78d5bf077be3e957456331fa99c34a646b9eff242c30d"
+        },
+        "args": [
+          10000,
+          8,
+          0
+        ],
+        "expectTrap": "div_by_zero",
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-05",
+      "suite": "wasm_exec",
+      "description": "Cross-runtime WASM loop/branch sum_to_n(10) == 55",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_sum_to_n",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBgFgAX8BfwMCAQAHCAEEbWFpbgAACi0BKwECf0EAIQFBASECAkADQCACIABKDQEgASACaiEBIAJBAWohAgwACwsgAQs=",
+          "codeSha256": "4b8282fa8630ca54508956f5adb3c842fd5e3cfd1833189741bd46b287caffd0",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                10
+              ],
+              "output": 55
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "6ab40d4d3f468c78e33c4ab9ac9eaad342bcf5d318535f617cb1f8c72cb8099f9afa6ab95f20522c71b1721dc1a439accd04464f034b916407b8cb5a4d79b206"
+        },
+        "args": [
+          10
+        ],
+        "expectOutput": 55,
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-06",
+      "suite": "wasm_exec",
+      "description": "Adversarial infinite-loop WASM DoS capsule trapped by deterministic fuel metering",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_infinite_dos",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBgFgAX8BfwMCAQAHCAEEbWFpbgAACgsBCQADQAwACyAACw==",
+          "codeSha256": "fbbaa36aa48e275c7a13f5ca5af8ec305015bccbc781547dadcc6013fda9c456",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                1
+              ],
+              "output": 1
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "3f5fb0dd8c32017ae36afc2ee50f1f68aac47280dd122449c73cef5edff008984aaae15be5b4a099f003c13d37fd1d61d076aa7618544ded3b2be520b2c7f502"
+        },
+        "args": [
+          1
+        ],
+        "expectTrap": "fuel_exhausted",
+        "fuelLimit": 500
+      }
+    },
+    {
+      "id": "wasm-07",
+      "suite": "wasm_exec",
+      "description": "End-to-end zero-rumor vsc-revoke/1 locally reproduces buggy WASM output (9980 != 8000)",
+      "expectOk": true,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_buggy_discount",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABBwFgAn9/AX8DAgEABwgBBG1haW4AAAoJAQcAIAAgAWsL",
+          "codeSha256": "35196d4f9855ed2292232dc8c3d9634091cec8558820ea5079500ccae80d5a24",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                100,
+                0
+              ],
+              "output": 100
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "157b3cd7b0026d57ba4680884d0603274e080c3b09eaad050481dd89fa82f668ba2e79636748d5d95a33331c7d2ded1b681a9430f369ea0fad74efba38f41806"
+        },
+        "revocation": {
+          "spec": "vsc-revoke/1",
+          "targetCodeSha256": "35196d4f9855ed2292232dc8c3d9634091cec8558820ea5079500ccae80d5a24",
+          "kind": "wrong_output",
+          "counterexample": {
+            "input": [
+              10000,
+              20
+            ],
+            "expected": 8000,
+            "observed": 9980
+          },
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+          "sig": "0a4d10e75b948066f6e965ae175806940369931ce2fd3fa02b9bed384b215b97e1bcd0c417911f4d111437f3c3f805a0ecf2b31756416c3d0f1dc978f59efd0f"
+        },
+        "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "wasm-08",
+      "suite": "wasm_exec",
+      "description": "Corrupt WASM section bytes rejected by full structural validation despite valid 8-byte header",
+      "expectOk": false,
+      "input": {
+        "capsule": {
+          "spec": "vsc/1",
+          "name": "wasm_corrupt_section",
+          "version": "1.0.0",
+          "runtime": "wasm-core-1",
+          "encoding": "base64",
+          "code": "AGFzbQEAAAABf/8=",
+          "codeSha256": "c56e7e5516cae4b7fddbd8dee3905045f5c0f0ee87b7816169543ca8c21c7abf",
+          "params": {
+            "type": "object",
+            "required": [
+              "price",
+              "d1",
+              "d2"
+            ]
+          },
+          "tests": [
+            {
+              "input": [
+                1
+              ],
+              "output": 1
+            }
+          ],
+          "capabilities": [],
+          "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "sig": "5c3514ab2d12bc14e1727ac9ff19367c37be8e06b5cea95e266b7dd2bc886a5d1ef4b811779ff16e55ab780aef3c91313ecf806edc6fd47eaf07a522a9f24a06"
+        },
+        "args": [
+          1
+        ],
+        "expectOutput": 1,
+        "fuelLimit": 1000
+      }
+    }
+  ]
+}
