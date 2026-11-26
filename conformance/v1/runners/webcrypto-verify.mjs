@@ -168,6 +168,23 @@ async function verifyVsc1(doc) {
     const { sig, ...unsigned } = doc;
     return ed25519Verify(doc.signer, canonical(unsigned), sig);
   }
+  if (doc.spec === 'vsc-vote/1') {
+    if (!HEX64.test(String(doc.targetCodeSha256 || '')) || !HEX64.test(String(doc.author || '')) || !HEX64.test(String(doc.voter || ''))) return false;
+    if (doc.voter === doc.author) return false;
+    if (!Number.isSafeInteger(doc.passed) || !Number.isSafeInteger(doc.total) || doc.total < 1 || doc.passed < 0 || doc.passed > doc.total) return false;
+    if (!HEX64.test(String(doc.resultsSha256 || '')) || !isValidRfc3339(doc.issuedAt)) return false;
+    if (doc.expectedResultsSha256 != null && doc.resultsSha256 !== doc.expectedResultsSha256) return false;
+    if (!HEX128.test(String(doc.sig || ''))) return false;
+    const { sig, expectedResultsSha256: _exp, ...unsigned } = doc;
+    return ed25519Verify(doc.voter, canonical(unsigned), sig);
+  }
+  if (doc.spec === 'vsc-veto/1') {
+    if (!HEX64.test(String(doc.targetCodeSha256 || '')) || !HEX64.test(String(doc.by || '')) || !HEX128.test(String(doc.sig || ''))) return false;
+    if (typeof doc.reason !== 'string' || !doc.reason.length || !isValidRfc3339(doc.issuedAt)) return false;
+    if (doc.ownerPubKey != null && doc.by !== doc.ownerPubKey) return false;
+    const { sig, ownerPubKey: _own, ...unsigned } = doc;
+    return ed25519Verify(doc.by, canonical(unsigned), sig);
+  }
   if (doc.spec !== 'vsc/1') return false;
   if (!/^[a-z][a-z0-9_-]{1,63}$/.test(String(doc.name || ''))) return false;
   if (['__proto__', 'constructor', 'prototype'].includes(doc.name)) return false;
@@ -469,6 +486,55 @@ async function verifyWasmExec({ capsule, revocation = null, args = null, expectO
   return !fuelRes.trap && fuelRes.value === nativeVal && fuelRes.value === expectOutput;
 }
 
+async function computeMerkleRoot(hashes) {
+  let level = [];
+  for (const h of hashes) level.push(await merkleLeaf(h));
+  while (level.length > 1) {
+    const next = [];
+    for (let i = 0; i < level.length; i += 2) {
+      next.push(i + 1 < level.length ? await merkleNode(level[i], level[i + 1]) : level[i]);
+    }
+    level = next;
+  }
+  return level[0];
+}
+
+async function verifyPor1({ vault, proofCheck = null }) {
+  if (!vault || vault.spec !== 'por/1' || vault.merkle !== 'rfc6962-sha256') return false;
+  if (!HEX64.test(String(vault.publicKey || '')) || !HEX64.test(String(vault.root || '')) || !HEX128.test(String(vault.sig || ''))) return false;
+  if (!isValidRfc3339(vault.issuedAt)) return false;
+  const h = (await sha256Bytes(fromHex(vault.publicKey))).slice(0, 16);
+  const expectedId = `fx-${h.slice(0, 4)}-${h.slice(4, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}`;
+  if (vault.agentId !== expectedId) return false;
+  if (!Array.isArray(vault.fields) || !Array.isArray(vault.leaves) || vault.fields.length < 1 || vault.fields.length !== vault.leaves.length) return false;
+  for (let i = 0; i < vault.leaves.length; i++) {
+    if (typeof vault.fields[i] !== 'string' || !vault.fields[i].length) return false;
+    if (typeof vault.leaves[i] !== 'string' || !/^[0-9a-f]{64}$/.test(vault.leaves[i])) return false;
+  }
+  if (await computeMerkleRoot(vault.leaves) !== vault.root) return false;
+  const { sig, ...unsigned } = vault;
+  if (!await ed25519Verify(vault.publicKey, canonical(unsigned), sig)) return false;
+  if (proofCheck) {
+    const idx = proofCheck.fieldIndex;
+    if (!Number.isSafeInteger(idx) || idx < 0 || idx >= vault.leaves.length) return false;
+    if (proofCheck.leafHex !== vault.leaves[idx]) return false;
+    if (!await verifyMerkle({ leaf: proofCheck.leafHex, seq: idx + 1, size: vault.leaves.length, root: vault.root, path: proofCheck.path })) return false;
+  }
+  return true;
+}
+
+async function verifyOpeg1(doc) {
+  if (!doc || doc.spec !== 'opeg/1' || doc.state !== 'S4_COMMIT') return false;
+  if (doc.mode !== 'EXECUTE_AND_RECEIVE') return false;
+  if (!Array.isArray(doc.sourcePriority) || doc.sourcePriority[0] !== 'runtime_receipt') return false;
+  const san = doc.sanitizer;
+  if (!san || san.status !== 'SUCCESS' || !san.rSan || typeof san.rSan !== 'object' || Array.isArray(san.rSan)) return false;
+  const rSanCanon = canonical(san.rSan);
+  if (await sha256Text(rSanCanon) !== san.rSanSha256) return false;
+  const er = await evaluateSvaEr1({ receipt: doc.receipt, deliverable: rSanCanon });
+  return er.ok === true && er.outcome === 'verified' && er.deliverable === 'verified';
+}
+
 export async function verifyVector(v) {
   switch (v.suite) {
     case 'jcs': {
@@ -480,6 +546,8 @@ export async function verifyVector(v) {
     case 'vsc1': return verifyVsc1(v.input);
     case 'ema1': return verifyEma1(v.input);
     case 'wasm_exec': return verifyWasmExec(v.input);
+    case 'por1': return verifyPor1(v.input);
+    case 'opeg1': return verifyOpeg1(v.input);
     default: return false;
   }
 }

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OPEG/1 Empirical Grounding Gate Lab — EyeOverThink</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>OPEG/1 — Empirical Grounding Gate &amp; Signed Receipt Lab</h1>
+        <div class="kv">
+          <span class="pill ok">0 backend servers</span>
+          <span class="pill ok">DIRECT_INFERENCE blocked</span>
+          <span class="pill accent">WebCrypto Ed25519 + SVA-ER/1</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">Hub</a>
+        <a href="./receipt-lab.html">1. Receipt Lab</a>
+        <a href="./membrane-lab.html">2. Membrane Lab</a>
+        <a href="./skill-lab.html">3. Skill Lab</a>
+        <a href="./opeg-lab.html" aria-current="page">4. OPEG Gate Lab</a>
+      </nav>
+    </header>
+
+    <p class="lead">
+      <strong>OPEG/1</strong> blocks an AI agent from committing an empirical claim via <code>DIRECT_INFERENCE</code>.
+      The state machine halts at <code>S2</code>, runs deterministic code in your browser, sanitizes raw output via
+      <code>&Sigma;(R_raw) &rarr; R_san</code>, binds <code>SHA-256(JCS(R_san))</code> into an Ed25519-signed
+      <strong>SVA-ER/1</strong> receipt, and unlocks <code>S4_COMMIT</code> only after independent verification passes.
+    </p>
+
+    <div class="card" style="margin-bottom:18px">
+      <h2>Live Gate Pipeline (<code>S0 &rarr; S1 &rarr; S2 [HALT] &rarr; S3 [&Sigma; + SVA-ER/1] &rarr; S4 [COMMIT]</code>)</h2>
+      <div class="kv" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="btnDirect" class="btn danger">1. Try DIRECT_INFERENCE Bypass (Should Block)</button>
+        <button id="btnExecute" class="btn primary">2. Run EP3 Cubic Perturbation + Sign SVA-ER/1 Receipt</button>
+        <button id="btnTamper" class="btn warn" disabled>3. Tamper R_san After Signing (Flip Sign &alpha;: -1 &rarr; +1)</button>
+      </div>
+      <div id="gateBanner" class="banner" style="margin-top:14px">
+        Ready. Click <strong>1</strong> to test fail-closed refusal or <strong>2</strong> to run the numerical EP3 eigenvalue check and mint a real WebCrypto SVA-ER/1 receipt.
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h3>S2/S3 Raw Execution &rarr; Sanitized <code>R_san</code></h3>
+        <pre id="outSan" class="code" style="min-height:220px;overflow:auto">// Waiting for execution...</pre>
+      </section>
+
+      <section class="card">
+        <h3>S4 Independent Verifier (<code>verifyReceipt</code> + <code>OPEG/1</code> Gate)</h3>
+        <pre id="outVerify" class="code" style="min-height:220px;overflow:auto">// Waiting for verification...</pre>
+      </section>
+    </div>
+
+    <footer>
+      Apache-2.0 · <a href="https://github.com/eyeoverthink/sva-standard">eyeoverthink/sva-standard</a> ·
+      All math, Ed25519 signing, and SVA-ER/1 Merkle verification execute locally in-browser via <code>playgrounds/lib/receipt-verify.js</code>.
+    </footer>
+  </div>
+
+  <script type="module">
+    import { verifyReceipt, canonical } from './lib/receipt-verify.js';
+
+    const enc = new TextEncoder();
+    const toHex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const sha256Hex = async (str) => toHex(await crypto.subtle.digest('SHA-256', enc.encode(str)));
+    const merkleLeaf = async (h) => {
+      const b = enc.encode(String(h));
+      const out = new Uint8Array(1 + b.length);
+      out[0] = 0x00; out.set(b, 1);
+      return toHex(await crypto.subtle.digest('SHA-256', out));
+    };
+
+    // Deterministic numerical check of the 3-mode PT-symmetric EP3 perturbation:
+    // H(gamma_EP3) + eps * diag(1, 0, 0) with g = 1, gamma = sqrt(2):
+    // Characteristic polynomial: det(H + eps*V - lam*I) = -lam^3 + eps*(lam^2 + i*gamma*lam - g^2) = 0
+    // Leading Puiseux expansion: lam^3 = -g^2 * eps => alpha = -1, |lam| = eps^(1/3), slope p = 1/3.
+    function runEp3Check() {
+      const g = 1.0;
+      const gamma = Math.SQRT2 * g;
+      const epsList = [1e-6, 1e-5, 1e-4, 1e-3];
+      const samples = [];
+      for (const eps of epsList) {
+        // Solve -lam^3 + eps*(lam^2 + i*gamma*lam - g^2) = 0 via complex Newton from cube root of (-g^2 * eps)
+        let re = -Math.cbrt(g * g * eps);
+        let im = 0.0;
+        for (let iter = 0; iter < 30; iter++) {
+          // f(z) = -z^3 + eps*(z^2 + i*gamma*z - g^2)
+          const z2re = re * re - im * im, z2im = 2 * re * im;
+          const z3re = z2re * re - z2im * im, z3im = z2re * im + z2im * re;
+          const fre = -z3re + eps * (z2re - gamma * im - g * g);
+          const fim = -z3im + eps * (z2im + gamma * re);
+          // f'(z) = -3*z^2 + eps*(2*z + i*gamma)
+          const dfre = -3 * z2re + eps * (2 * re);
+          const dfim = -3 * z2im + eps * (2 * im + gamma);
+          const denom = dfre * dfre + dfim * dfim;
+          re -= (fre * dfre + fim * dfim) / denom;
+          im -= (fim * dfre - fre * dfim) / denom;
+        }
+        const mag = Math.hypot(re, im);
+        // Estimate leading alpha = Re(lam^3 / eps)
+        const z2re = re * re - im * im, z2im = 2 * re * im;
+        const z3re = z2re * re - z2im * im;
+        samples.push({ eps, absLambda: Number(mag.toFixed(8)), alphaEstimate: Number((z3re / eps).toFixed(4)) });
+      }
+      // Log-log regression slope for |lambda| ~ eps^p
+      const xs = samples.map((s) => Math.log(s.eps));
+      const ys = samples.map((s) => Math.log(s.absLambda));
+      const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+      const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+      const num = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0);
+      const den = xs.reduce((s, x) => s + (x - mx) * (x - mx), 0);
+      const slope = Number((num / den).toFixed(6));
+      const alpha = Math.round(samples[0].alphaEstimate);
+      return {
+        raw: `RAW_RECEIPT_START|STATUS:SUCCESS|ENGINE:BROWSER_COMPLEX_NEWTON|DATA_PAYLOAD:${JSON.stringify({ slope, alpha, samples })}|RAW_RECEIPT_END`,
+        rSan: {
+          experiment: 'EP3_PT_SYMMETRIC_PUISEUX',
+          g: 1,
+          gamma: Number(gamma.toFixed(6)),
+          puiseuxExponent: slope,
+          leadingAlpha: alpha,
+          cubicIdentity: 'lambda^3 = -g^2 * eps',
+          samples,
+        },
+      };
+    }
+
+    async function evaluateOpegGate(envelope) {
+      if (!envelope || envelope.spec !== 'opeg/1') {
+        return { ok: false, gate: 'BLOCKED', reason: 'Malformed OPEG/1 envelope' };
+      }
+      if (envelope.mode !== 'EXECUTE_AND_RECEIVE') {
+        return { ok: false, gate: 'BLOCKED_FORBIDDEN_ACTION', reason: `Forbidden mode "${envelope.mode}": DIRECT_INFERENCE is prohibited; runtime receipt required before S4_COMMIT.` };
+      }
+      if (!envelope.sanitizer || envelope.sanitizer.status !== 'SUCCESS' || !envelope.sanitizer.rSan) {
+        return { ok: false, gate: 'BLOCKED_SANITIZER', reason: 'Sanitizer Σ did not emit valid R_san payload' };
+      }
+      const rSanCanonical = canonical(envelope.sanitizer.rSan);
+      const recomputed = await sha256Hex(rSanCanonical);
+      if (recomputed !== envelope.sanitizer.rSanSha256) {
+        return { ok: false, gate: 'BLOCKED_RSAN_TAMPER', reason: `R_san digest mismatch: expected ${envelope.sanitizer.rSanSha256.slice(0, 16)}..., got ${recomputed.slice(0, 16)}...` };
+      }
+      const rCheck = await verifyReceipt(envelope.receipt, { deliverable: rSanCanonical });
+      if (!rCheck.ok || rCheck.deliverable !== 'verified') {
+        return { ok: false, gate: 'BLOCKED_RECEIPT_INVALID', reason: 'Bound SVA-ER/1 receipt failed cryptographic verification', receiptOutcome: rCheck };
+      }
+      return {
+        ok: true,
+        gate: 'S4_COMMIT_UNLOCKED',
+        sourcePriority: envelope.sourcePriority,
+        rSanSha256: recomputed,
+        receiptOutcome: rCheck,
+      };
+    }
+
+    let lastEnvelope = null;
+    const banner = document.getElementById('gateBanner');
+    const outSan = document.getElementById('outSan');
+    const outVerify = document.getElementById('outVerify');
+    const btnTamper = document.getElementById('btnTamper');
+
+    function setBanner(ok, msg) {
+      banner.className = 'banner ' + (ok ? 'ok' : 'err');
+      banner.textContent = msg;
+    }
+
+    document.getElementById('btnDirect').addEventListener('click', async () => {
+      const attempt = {
+        spec: 'opeg/1',
+        state: 'S4_COMMIT',
+        mode: 'DIRECT_INFERENCE',
+        sourcePriority: ['initial_prompt'],
+        claimedAnswer: { puiseuxExponent: 0.3333, leadingAlpha: 1, note: 'LLM guessed alpha=+1 without executing code' },
+        receipt: null,
+      };
+      const verdict = await evaluateOpegGate(attempt);
+      outSan.textContent = JSON.stringify(attempt, null, 2);
+      outVerify.textContent = JSON.stringify(verdict, null, 2);
+      setBanner(false, 'BLOCKED AT S2 GATE: DIRECT_INFERENCE rejected — no signed runtime receipt present.');
+    });
+
+    document.getElementById('btnExecute').addEventListener('click', async () => {
+      const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+      const pubHex = toHex(await crypto.subtle.exportKey('raw', kp.publicKey));
+      const signStr = async (s) => toHex(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, enc.encode(s)));
+
+      const { raw, rSan } = runEp3Check();
+      const rSanCanonical = canonical(rSan);
+      const rSanSha256 = await sha256Hex(rSanCanonical);
+      const now = new Date().toISOString();
+      const missionId = 'opeg_ep3_001';
+      const entryCore = {
+        seq: 1, ts: now, kind: 'mission.complete', actor: 'opeg-sanitizer',
+        data: { id: missionId, mode: 'EXECUTE_AND_RECEIVE', resultHash: rSanSha256 },
+        prev: '0'.repeat(64),
+      };
+      const entryHash = await sha256Hex(canonical(entryCore));
+      const merkleRoot = await merkleLeaf(entryHash);
+      const statement = {
+        type: 'sva-er.statement',
+        missionId,
+        deliverableSha256: rSanSha256,
+        merkleRoot,
+        merkle: 'rfc6962-sha256',
+        size: 1,
+        entries: 1,
+        clock: { status: 'attested', issuedAt: now, maxSkewSec: 300 },
+      };
+      const receipt = {
+        spec: 'sva-er/1',
+        agency: { name: 'Browser OPEG/1 Grounding Gate', publicKey: pubHex },
+        statement,
+        statementSig: await signStr(canonical(statement)),
+        entries: [{ ...entryCore, hash: entryHash, sig: await signStr(entryHash), signer: pubHex, proof: [] }],
+      };
+      lastEnvelope = {
+        spec: 'opeg/1',
+        state: 'S4_COMMIT',
+        mode: 'EXECUTE_AND_RECEIVE',
+        sourcePriority: ['runtime_receipt', 'memory_artifact', 'initial_prompt'],
+        sanitizer: { status: 'SUCCESS', rSan, rSanSha256 },
+        receipt,
+      };
+      const verdict = await evaluateOpegGate(lastEnvelope);
+      outSan.textContent = `// S2 R_raw (truncated):\n${raw.slice(0, 140)}...\n\n// S3 Sanitized R_san:\n${JSON.stringify(rSan, null, 2)}`;
+      outVerify.textContent = JSON.stringify(verdict, null, 2);
+      btnTamper.disabled = false;
+      setBanner(verdict.ok, `S4_COMMIT UNLOCKED: Verified EP3 scaling p=${rSan.puiseuxExponent}, alpha=${rSan.leadingAlpha} bound to Ed25519 SVA-ER/1 receipt.`);
+    });
+
+    btnTamper.addEventListener('click', async () => {
+      if (!lastEnvelope) return;
+      const tampered = JSON.parse(JSON.stringify(lastEnvelope));
+      tampered.sanitizer.rSan.leadingAlpha = 1; // flip -1 -> +1 after signing!
+      const verdict = await evaluateOpegGate(tampered);
+      outSan.textContent = `// TAMPERED R_san (leadingAlpha flipped -1 -> +1 after Ed25519 signing):\n${JSON.stringify(tampered.sanitizer.rSan, null, 2)}`;
+      outVerify.textContent = JSON.stringify(verdict, null, 2);
+      setBanner(false, 'TAMPER CAUGHT BEFORE S4_COMMIT: R_san digest no longer matches signed SVA-ER/1 receipt!');
+    });
+  </script>
+</body>
+</html>

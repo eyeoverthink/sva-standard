@@ -78,6 +78,8 @@ public class SvaConformance {
         case "vsc1" -> verifyVsc1(input);
         case "ema1" -> verifyEma1(input);
         case "wasm_exec" -> verifyWasmExec(input);
+        case "por1" -> verifyPor1(input);
+        case "opeg1" -> verifyOpeg1(input);
         default -> false;
       };
     } catch (Exception e) {
@@ -356,6 +358,42 @@ public class SvaConformance {
       unsigned.remove("sig");
       return ed25519Verify(signer, canonical(unsigned), sig);
     }
+    if ("vsc-vote/1".equals(spec)) {
+      String target = asStr(doc.get("targetCodeSha256"));
+      String author = asStr(doc.get("author"));
+      String voter = asStr(doc.get("voter"));
+      Integer passed = asSafeInt(doc.get("passed"));
+      Integer total = asSafeInt(doc.get("total"));
+      String resSha = asStr(doc.get("resultsSha256"));
+      String expSha = asStr(doc.get("expectedResultsSha256"));
+      String issuedAt = asStr(doc.get("issuedAt"));
+      String sig = asStr(doc.get("sig"));
+      if (target == null || !HEX64.matcher(target).matches() || author == null || !HEX64.matcher(author).matches() || voter == null || !HEX64.matcher(voter).matches()) return false;
+      if (voter.equals(author)) return false;
+      if (passed == null || total == null || total < 1 || passed < 0 || passed > total) return false;
+      if (resSha == null || !HEX64.matcher(resSha).matches() || !isValidRfc3339(issuedAt)) return false;
+      if (expSha != null && !expSha.equals(resSha)) return false;
+      if (sig == null || !HEX128.matcher(sig).matches()) return false;
+      Map<String, Object> unsigned = new LinkedHashMap<>(doc);
+      unsigned.remove("sig");
+      unsigned.remove("expectedResultsSha256");
+      return ed25519Verify(voter, canonical(unsigned), sig);
+    }
+    if ("vsc-veto/1".equals(spec)) {
+      String target = asStr(doc.get("targetCodeSha256"));
+      String by = asStr(doc.get("by"));
+      String reason = asStr(doc.get("reason"));
+      String issuedAt = asStr(doc.get("issuedAt"));
+      String owner = asStr(doc.get("ownerPubKey"));
+      String sig = asStr(doc.get("sig"));
+      if (target == null || !HEX64.matcher(target).matches() || by == null || !HEX64.matcher(by).matches() || sig == null || !HEX128.matcher(sig).matches()) return false;
+      if (reason == null || reason.isEmpty() || !isValidRfc3339(issuedAt)) return false;
+      if (owner != null && !owner.equals(by)) return false;
+      Map<String, Object> unsigned = new LinkedHashMap<>(doc);
+      unsigned.remove("sig");
+      unsigned.remove("ownerPubKey");
+      return ed25519Verify(by, canonical(unsigned), sig);
+    }
     if (!"vsc/1".equals(spec)) return false;
     String name = asStr(doc.get("name"));
     String runtime = asStr(doc.get("runtime"));
@@ -389,6 +427,81 @@ public class SvaConformance {
     Map<String, Object> unsigned = new LinkedHashMap<>(doc);
     unsigned.remove("sig");
     return ed25519Verify(signer, canonical(unsigned), sig);
+  }
+
+  // ==================== POR/1 Proof-of-Reality Vault Verifier ====================
+  private static final Pattern LOWER_HEX64 = Pattern.compile("^[0-9a-f]{64}$");
+
+  private static String computeMerkleRoot(List<String> leaves) throws Exception {
+    List<String> level = new ArrayList<>(leaves.size());
+    for (String h : leaves) level.add(merkleLeaf(h));
+    while (level.size() > 1) {
+      List<String> next = new ArrayList<>();
+      for (int i = 0; i < level.size(); i += 2) {
+        next.add(i + 1 < level.size() ? merkleNode(level.get(i), level.get(i + 1)) : level.get(i));
+      }
+      level = next;
+    }
+    return level.get(0);
+  }
+
+  private static boolean verifyPor1(Map<String, Object> in) throws Exception {
+    Map<String, Object> vault = asObj(in.get("vault"));
+    if (vault == null || !"por/1".equals(asStr(vault.get("spec"))) || !"rfc6962-sha256".equals(asStr(vault.get("merkle")))) return false;
+    String pub = asStr(vault.get("publicKey"));
+    String root = asStr(vault.get("root"));
+    String sig = asStr(vault.get("sig"));
+    String issuedAt = asStr(vault.get("issuedAt"));
+    String agentId = asStr(vault.get("agentId"));
+    if (pub == null || !HEX64.matcher(pub).matches() || root == null || !HEX64.matcher(root).matches() || sig == null || !HEX128.matcher(sig).matches()) return false;
+    if (!isValidRfc3339(issuedAt)) return false;
+    String h = sha256(hexToBytes(pub)).substring(0, 16);
+    String expectedId = "fx-" + h.substring(0, 4) + "-" + h.substring(4, 8) + "-" + h.substring(8, 12) + "-" + h.substring(12, 16);
+    if (!expectedId.equals(agentId)) return false;
+    List<Object> fields = asList(vault.get("fields"));
+    List<Object> leavesObj = asList(vault.get("leaves"));
+    if (fields == null || leavesObj == null || fields.isEmpty() || fields.size() != leavesObj.size()) return false;
+    List<String> leaves = new ArrayList<>(leavesObj.size());
+    for (int i = 0; i < leavesObj.size(); i++) {
+      String f = asStr(fields.get(i));
+      String l = asStr(leavesObj.get(i));
+      if (f == null || f.isEmpty() || l == null || !LOWER_HEX64.matcher(l).matches()) return false;
+      leaves.add(l);
+    }
+    if (!computeMerkleRoot(leaves).equals(root)) return false;
+    Map<String, Object> unsigned = new LinkedHashMap<>(vault);
+    unsigned.remove("sig");
+    if (!ed25519Verify(pub, canonical(unsigned), sig)) return false;
+    Map<String, Object> pc = asObj(in.get("proofCheck"));
+    if (pc != null) {
+      Integer idx = asSafeInt(pc.get("fieldIndex"));
+      String leafHex = asStr(pc.get("leafHex"));
+      if (idx == null || idx < 0 || idx >= leaves.size() || !leaves.get(idx).equals(leafHex)) return false;
+      Map<String, Object> mIn = new HashMap<>();
+      mIn.put("leaf", leafHex); mIn.put("seq", idx + 1); mIn.put("size", leaves.size()); mIn.put("root", root); mIn.put("path", pc.get("path"));
+      if (!verifyMerkle(mIn)) return false;
+    }
+    return true;
+  }
+
+  // ==================== OPEG/1 Empirical Grounding Gate Verifier ====================
+  private static boolean verifyOpeg1(Map<String, Object> doc) throws Exception {
+    if (doc == null || !"opeg/1".equals(asStr(doc.get("spec"))) || !"S4_COMMIT".equals(asStr(doc.get("state")))) return false;
+    if (!"EXECUTE_AND_RECEIVE".equals(asStr(doc.get("mode")))) return false;
+    List<Object> prio = asList(doc.get("sourcePriority"));
+    if (prio == null || prio.isEmpty() || !"runtime_receipt".equals(asStr(prio.get(0)))) return false;
+    Map<String, Object> san = asObj(doc.get("sanitizer"));
+    if (san == null || !"SUCCESS".equals(asStr(san.get("status")))) return false;
+    Map<String, Object> rSan = asObj(san.get("rSan"));
+    String rSanSha = asStr(san.get("rSanSha256"));
+    if (rSan == null || rSanSha == null) return false;
+    String rSanCanon = canonical(rSan);
+    if (!sha256(rSanCanon).equals(rSanSha)) return false;
+    Map<String, Object> erIn = new HashMap<>();
+    erIn.put("receipt", doc.get("receipt"));
+    erIn.put("deliverable", rSanCanon);
+    SvaErOutcome er = evaluateSvaEr1(erIn);
+    return er.ok() && "verified".equals(er.outcome()) && "verified".equals(er.deliverable());
   }
 
   // ==================== EMA/1 Verifier ====================

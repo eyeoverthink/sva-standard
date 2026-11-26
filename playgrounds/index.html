@@ -22,18 +22,19 @@
         <a href="./receipt-lab.html">1. Receipt Tamper Lab</a>
         <a href="./membrane-lab.html">2. Privacy Membrane Lab</a>
         <a href="./skill-lab.html">3. Zero-Call Skill Lab</a>
+        <a href="./opeg-lab.html">4. OPEG Gate Lab</a>
       </nav>
     </header>
 
     <p class="lead">
       Every tool below runs <strong>100% locally in your browser tab</strong> using the exact zero-dependency modules
-      from <code>eyeoverthink-agency</code> (WebCrypto Ed25519/SHA-256, RFC 6962 Merkle proofs, deterministic PII
-      sealing, and zero-model binder induction). Turn off your Wi-Fi and try to break them.
+      from <code>eyeoverthink/sva-standard</code> (WebCrypto Ed25519/SHA-256, RFC 6962 Merkle proofs, deterministic PII
+      sealing, zero-model binder induction, and OPEG/1 execution-gated verification). Turn off your Wi-Fi and try to break them.
     </p>
 
     <div class="grid">
       <section class="card">
-        <span class="pill accent">AER/1 · WebCrypto Ed25519</span>
+        <span class="pill accent">SVA-ER/1 · WebCrypto Ed25519</span>
         <h2 style="margin-top:10px">1. AI Execution Receipt &amp; Tamper Lab</h2>
         <p class="lead" style="margin-bottom:14px">
           Mint a real Ed25519-signed, RFC 6962 Merkle-proven mission receipt right in your browser, then click
@@ -65,10 +66,21 @@
         </p>
         <a class="pill ok" href="./skill-lab.html">Open Zero-Call Skill Lab &rarr;</a>
       </section>
+
+      <section class="card">
+        <span class="pill accent">OPEG/1 · Pre-Answer Execution Gate</span>
+        <h2 style="margin-top:10px">4. OPEG/1 Empirical Grounding Gate Lab</h2>
+        <p class="lead" style="margin-bottom:14px">
+          Test the <code>S0&ndash;S4</code> execution gate live: watch <code>DIRECT_INFERENCE</code> get blocked fail-closed,
+          execute a real numerical EP3 cubic perturbation check sanitized into <code>R_san</code> and signed as an
+          <code>SVA-ER/1</code> receipt, then tamper with <code>R_san</code> to watch verification catch it before commit.
+        </p>
+        <a class="pill ok" href="./opeg-lab.html">Open OPEG Gate Lab &rarr;</a>
+      </section>
     </div>
 
     <footer>
-      Apache-2.0 · <a href="https://github.com/eyeoverthink/eyeoverthink-agency">eyeoverthink/eyeoverthink-agency</a> ·
+      Apache-2.0 · <a href="https://github.com/eyeoverthink/sva-standard">eyeoverthink/sva-standard</a> ·
       All cryptography and logic executes client-side from <code>playgrounds/lib/</code>.
     </footer>
   </div>

@@ -65,3 +65,27 @@ No custom DNA/ACGT wrappers appear on the wire. Only plain JCS-canonicalizable J
 2. `counterexample` is an object containing a non-undefined `input`.
 3. `signer` is 64 hex chars, `sig` is 128 hex chars, and `Ed25519Verify(signer, UTF8(JCS(tombstone without sig)), sig) === true`.
 4. **Local Reproduction Rule (Runtime):** A valid tombstone signature authorizes *testing* the counterexample locally — never blind quarantine. Receivers quarantine `targetCodeSha256` only when local execution confirms the fault, and demote peers that repeatedly submit irreproducible tombstones.
+
+## 4. Signed WASM Test-Result Quorum (`vsc-vote/1`) & Owner Veto (`vsc-veto/1`)
+
+Adopted from FRAYMUS Protocol v13 (*Skills by Vote*): **a vote is a signed deterministic test result, not an opinion.** Before a proposed `vsc/1` capsule is promoted from probation to fleet-wide adoption, independent peer agencies execute the capsule's `tests` locally in their zero-import WASM VM and emit a signed `vsc-vote/1` record:
+
+```json
+{
+  "spec": "vsc-vote/1",
+  "targetCodeSha256": "<64-hex>",
+  "author": "<64-hex capsule signer pubkey>",
+  "voter": "<64-hex distinct peer pubkey>",
+  "passed": 2,
+  "total": 2,
+  "resultsSha256": "<64-hex SHA-256(JCS(testResults))>",
+  "issuedAt": "2026-11-26T00:00:00.000Z",
+  "sig": "<128-hex Ed25519 signature over UTF8(JCS(vote without sig))>"
+}
+```
+
+### Mandatory Quorum & Veto Rules (Fail Closed)
+1. **No Self-Voting:** `voter !== author` (self-votes are rejected).
+2. **Deterministic Consistency:** A voter claiming `passed === total` whose `resultsSha256` disagrees with the reference execution digest is marked **inconsistent** and excluded from quorum (preventing rubber-stamp voting without execution).
+3. **Quorum Adoption:** A skill reaches `adopted` when at least `QUORUM` (default `2`) distinct consistent passing votes arrive and no verified counterexample revocation exists.
+4. **Human Owner Veto (`vsc-veto/1`):** A designated owner Ed25519 key can issue a signed `vsc-veto/1` (`{ spec: "vsc-veto/1", targetCodeSha256, reason, issuedAt, by, sig }`) at any time to immediately withdraw a skill regardless of peer quorum.

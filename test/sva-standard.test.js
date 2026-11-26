@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { runConformance } from '../conformance/v1/runners/node-verify.mjs';
 import { runConformanceDoc } from '../conformance/v1/runners/webcrypto-verify.mjs';
+import { runInteropVerification } from '../conformance/interop/aer1-svaer1/verify-interop.mjs';
 import { runImmuneMeshDemo } from '../demos/immune-mesh/run-demo.mjs';
 import { verifyReceipt } from '../packages/ai-receipt/receipt-verify.js';
 import { detect, SealSession, scanInjection } from '../packages/privacy-membrane/index.js';
@@ -18,43 +19,52 @@ const VEC = path.join(ROOT, 'conformance', 'v1', 'vectors.json');
 const JAVA_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'SvaConformance.java');
 const WEBCRYPTO_RUNNER = path.join(ROOT, 'conformance', 'v1', 'runners', 'webcrypto-verify.mjs');
 
-test('specs and 78-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
-  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md']) {
+test('specs and 90-vector golden suite exist; WebCrypto runner has zero node:crypto imports', () => {
+  for (const spec of ['SVA-ER-1.md', 'VSC-1.md', 'EMA-1.md', 'OPEG-1.md', 'POR-1.md']) {
     assert.ok(fs.existsSync(path.join(ROOT, 'specs', spec)), `missing specs/${spec}`);
   }
   assert.ok(!fs.existsSync(path.join(ROOT, 'specs', 'AER-1.md')), 'legacy colliding specs/AER-1.md must be removed');
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
-  assert.equal(doc.total, 78);
+  assert.equal(doc.total, 90);
   assert.equal(doc.suites.svaer1, 17);
+  assert.equal(doc.suites.vsc1, 17);
   assert.equal(doc.suites.wasm_exec, 14);
+  assert.equal(doc.suites.por1, 4);
+  assert.equal(doc.suites.opeg1, 4);
   const wcSrc = fs.readFileSync(WEBCRYPTO_RUNNER, 'utf8');
   assert.ok(!/(?:from|import\s*\(|require\s*\()\s*['"]node:crypto['"]/.test(wcSrc));
 });
 
-test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 78/78 golden vectors', () => {
+test('Tri-Runtime Conformance #1: Node.js (node:crypto + V8 WebAssembly) passes 90/90 golden vectors', () => {
   const res = runConformance(VEC);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 78);
+  assert.equal(res.passed, 90);
 });
 
-test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 78/78 golden vectors', async () => {
+test('Tri-Runtime Conformance #2: W3C Browser WebCrypto (crypto.subtle + WebAssembly) passes 90/90 golden vectors', async () => {
   const doc = JSON.parse(fs.readFileSync(VEC, 'utf8'));
   const res = await runConformanceDoc(doc);
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 78);
+  assert.equal(res.passed, 90);
 });
 
-test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 78/78 golden vectors', (t) => {
+test('Tri-Runtime Conformance #3: Single-File Pure Java (Ed25519 + pure-Java i32/f64/memory WASM VM) passes 90/90 golden vectors', (t) => {
   let javaOk = true;
   try { execFileSync('java', ['-version'], { stdio: 'pipe' }); } catch { javaOk = false; }
   if (!javaOk) { t.skip('java not installed'); return; }
   const out = execFileSync('java', [JAVA_RUNNER, VEC], { encoding: 'utf8' });
   const res = JSON.parse(out.trim());
   assert.equal(res.failed, 0, JSON.stringify(res.failures));
-  assert.equal(res.passed, 78);
+  assert.equal(res.passed, 90);
 });
 
-test('Stage 5 Cross-Agency Immune Mesh Demo (4 local HTTP agencies, 0 GPU) passes all 4 containment/Byzantine/PII scenarios', async () => {
+test('Joint AER-1 (draft-zambo-aer1-26, kit 1.6.1) <-> SVA-ER/1 clock & key-binding interop harness passes 5/5', () => {
+  const res = runInteropVerification();
+  assert.equal(res.failed, 0, JSON.stringify(res.failures));
+  assert.equal(res.passed, 5);
+});
+
+test('Stage 5 Cross-Agency Immune Mesh Demo (4 local HTTP agencies, 0 GPU) passes all 5 containment/quorum/veto scenarios', async () => {
   const res = await runImmuneMeshDemo();
   assert.equal(res.ok, true, JSON.stringify(res));
   assert.equal(res.gpuCalls, 0);
@@ -68,6 +78,10 @@ test('Stage 5 Cross-Agency Immune Mesh Demo (4 local HTTP agencies, 0 GPU) passe
   assert.deepEqual(res.scenarios.byzantineAutoDemotion.postDemotionStatuses, [403, 403]);
   assert.equal(res.scenarios.securityAndPrivacyNegativeControls.piiAdvisoryBlocked, true);
   assert.equal(res.scenarios.securityAndPrivacyNegativeControls.unsignedCapsuleRejected, true);
+  assert.equal(res.scenarios.skillsByVoteQuorumAndOwnerVeto.selfVoteRejected, true);
+  assert.equal(res.scenarios.skillsByVoteQuorumAndOwnerVeto.dishonestVoteRejected, true);
+  assert.equal(res.scenarios.skillsByVoteQuorumAndOwnerVeto.statusBeforeVeto, 'adopted');
+  assert.equal(res.scenarios.skillsByVoteQuorumAndOwnerVeto.statusAfterVeto, 'vetoed');
 });
 
 test('standalone packages: publish manifests, APIs & CLIs for ai-receipt, privacy-membrane, skill-crystallizer', async () => {
@@ -126,7 +140,7 @@ test('standalone packages: publish manifests, APIs & CLIs for ai-receipt, privac
 
 test('playgrounds: zero external CDN requests and zero node: imports across all static assets', () => {
   const pg = path.join(ROOT, 'playgrounds');
-  for (const f of ['index.html', 'receipt-lab.html', 'membrane-lab.html', 'skill-lab.html']) {
+  for (const f of ['index.html', 'receipt-lab.html', 'membrane-lab.html', 'skill-lab.html', 'opeg-lab.html']) {
     const html = fs.readFileSync(path.join(pg, f), 'utf8');
     assert.ok(!/<script[^>]+src=["']https?:\/\//i.test(html), `${f} must not load external scripts`);
     assert.ok(!/<link[^>]+href=["']https?:\/\//i.test(html), `${f} must not load external CSS`);

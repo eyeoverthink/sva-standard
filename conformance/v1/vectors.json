@@ -1,14 +1,16 @@
 {
-  "specVersion": "sva-conformance/1.3",
+  "specVersion": "sva-conformance/1.4",
   "generatedWith": "node:v24.11.1",
-  "total": 78,
+  "total": 90,
   "suites": {
     "jcs": 10,
     "merkle": 10,
     "svaer1": 17,
-    "vsc1": 13,
+    "vsc1": 17,
     "ema1": 14,
-    "wasm_exec": 14
+    "wasm_exec": 14,
+    "por1": 4,
+    "opeg1": 4
   },
   "vectors": [
     {
@@ -2593,6 +2595,75 @@
       }
     },
     {
+      "id": "vsc-14",
+      "suite": "vsc1",
+      "description": "Valid vsc-vote/1 signed WASM test-result vote from independent peer",
+      "expectOk": true,
+      "input": {
+        "spec": "vsc-vote/1",
+        "targetCodeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "author": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "voter": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "passed": 1,
+        "total": 1,
+        "resultsSha256": "f16916b217698f3df4379364b6c68558bec3c6b4bc72a551941ac31675a934d4",
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "sig": "61e1d8d8801de0ce6b123c53b8cba371e3a797b5010cfc169bb0ae6c0c97695b5186b38b2cdefd609b97f7d4955a80f5f2097eeaecf7cd08f481f6392d74b703",
+        "expectedResultsSha256": "f16916b217698f3df4379364b6c68558bec3c6b4bc72a551941ac31675a934d4"
+      }
+    },
+    {
+      "id": "vsc-15",
+      "suite": "vsc1",
+      "description": "Self-vote (voter === author) rejected fail-closed",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc-vote/1",
+        "targetCodeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "author": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "voter": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "passed": 1,
+        "total": 1,
+        "resultsSha256": "f16916b217698f3df4379364b6c68558bec3c6b4bc72a551941ac31675a934d4",
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "sig": "5841bfa9468acaeac48316d7d32aa8c4260385771c897d31525e4938a22a98cabe720ff4e81b9fedc47cf12f38b5884c57438905819529f01fb423312a343307",
+        "expectedResultsSha256": "f16916b217698f3df4379364b6c68558bec3c6b4bc72a551941ac31675a934d4"
+      }
+    },
+    {
+      "id": "vsc-16",
+      "suite": "vsc1",
+      "description": "Dishonest vsc-vote/1 with mismatched resultsSha256 rejected as inconsistent",
+      "expectOk": false,
+      "input": {
+        "spec": "vsc-vote/1",
+        "targetCodeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "author": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "voter": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "passed": 1,
+        "total": 1,
+        "resultsSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "sig": "1bb194b87100c635d800bc8b943d2f34c36dd3b2182d99b1462151a67ade0febbe50453110d1f3f3d34952fcf1df29252f115269468485fa42602ab7655d6d04",
+        "expectedResultsSha256": "f16916b217698f3df4379364b6c68558bec3c6b4bc72a551941ac31675a934d4"
+      }
+    },
+    {
+      "id": "vsc-17",
+      "suite": "vsc1",
+      "description": "Valid vsc-veto/1 signed owner withdrawal",
+      "expectOk": true,
+      "input": {
+        "spec": "vsc-veto/1",
+        "targetCodeSha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+        "reason": "Operator policy withdrawal",
+        "issuedAt": "2026-11-26T00:00:00.000Z",
+        "by": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "sig": "e256f5f839cca6a9fa8a087a03f1ee8433451159d15415e8134671fb0209b5691c20882b93c3ab3da73feae420b92c898291215c06d71d10d6bf5887f879c608",
+        "ownerPubKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+      }
+    },
+    {
       "id": "ema-01",
       "suite": "ema1",
       "description": "Valid SEALED_EGRESS attestation with verified HMAC tags and clean payload",
@@ -3855,6 +3926,478 @@
         ],
         "expectTrap": "invalid_conversion",
         "fuelLimit": 1000
+      }
+    },
+    {
+      "id": "por-01",
+      "suite": "por1",
+      "description": "Valid 7-leaf POR/1 local-hash vault with RFC 6962 inclusion proof for face leaf",
+      "expectOk": true,
+      "input": {
+        "vault": {
+          "spec": "por/1",
+          "agentId": "fx-21fe-31df-a154-a261",
+          "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "fields": [
+            "face",
+            "voice",
+            "geo",
+            "xyz",
+            "wrgba",
+            "time",
+            "pub"
+          ],
+          "leaves": [
+            "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+            "55b1c7d0b51d1b83f9c53421f5728299b43436d99cc4e02d3088e18846a5ad8c",
+            "f4f915155aad450011e8e813045cef8af6725c42cb84d39dd046de594b7728e1",
+            "35edc7966d1c20ed727958ba5d8c6400493afa015f68b6347daf537311314eda",
+            "039b2552f5e96e1e7b3200a1e293ffbc0cab4c1db31894227432763c5ab65980",
+            "27385ab48c2350f074acb6915354380d58804c76bfb110e427ba36283f9d52cf",
+            "4ebbe859de728e527bf2c053d3d7dabc7745b6c0c95cdf9dd7952317c3000b1f"
+          ],
+          "merkle": "rfc6962-sha256",
+          "root": "c4534dc010a01866c356afe8578616ad95fa91408b677c928f3a3a50c1d6e044",
+          "sig": "9eb13d265879d0501a4097556ec941b97e84517abfc67ce077b0865befdf77717c15abd888bdca73585cde4b5095c9cb5c028011a560dc454bc7859513b35c0d"
+        },
+        "proofCheck": {
+          "fieldIndex": 0,
+          "leafHex": "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+          "path": [
+            {
+              "hash": "2bb00a1cfbcdad8825a1b90dd5b06aaf8580ce1e8036b66d66213c172ffbc0c4",
+              "left": false
+            },
+            {
+              "hash": "fd1c4b42f3d6dfc6ceec4948fdbb98e02fea76741ed9fdcd6bfb9664435faaab",
+              "left": false
+            },
+            {
+              "hash": "79cb70170e5c787dcc86cfc5c1ee44691aa6fa9df3ae1dfd806b3a8d6abaf756",
+              "left": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "por-02",
+      "suite": "por1",
+      "description": "1-byte change in face leaf breaks POR/1 inclusion proof",
+      "expectOk": false,
+      "input": {
+        "vault": {
+          "spec": "por/1",
+          "agentId": "fx-21fe-31df-a154-a261",
+          "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "fields": [
+            "face",
+            "voice",
+            "geo",
+            "xyz",
+            "wrgba",
+            "time",
+            "pub"
+          ],
+          "leaves": [
+            "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+            "55b1c7d0b51d1b83f9c53421f5728299b43436d99cc4e02d3088e18846a5ad8c",
+            "f4f915155aad450011e8e813045cef8af6725c42cb84d39dd046de594b7728e1",
+            "35edc7966d1c20ed727958ba5d8c6400493afa015f68b6347daf537311314eda",
+            "039b2552f5e96e1e7b3200a1e293ffbc0cab4c1db31894227432763c5ab65980",
+            "27385ab48c2350f074acb6915354380d58804c76bfb110e427ba36283f9d52cf",
+            "4ebbe859de728e527bf2c053d3d7dabc7745b6c0c95cdf9dd7952317c3000b1f"
+          ],
+          "merkle": "rfc6962-sha256",
+          "root": "c4534dc010a01866c356afe8578616ad95fa91408b677c928f3a3a50c1d6e044",
+          "sig": "9eb13d265879d0501a4097556ec941b97e84517abfc67ce077b0865befdf77717c15abd888bdca73585cde4b5095c9cb5c028011a560dc454bc7859513b35c0d"
+        },
+        "proofCheck": {
+          "fieldIndex": 0,
+          "leafHex": "34b920fc755aea21d5ed4014b506a211885d5ab248c1228633a5655a23af6be9",
+          "path": [
+            {
+              "hash": "2bb00a1cfbcdad8825a1b90dd5b06aaf8580ce1e8036b66d66213c172ffbc0c4",
+              "left": false
+            },
+            {
+              "hash": "fd1c4b42f3d6dfc6ceec4948fdbb98e02fea76741ed9fdcd6bfb9664435faaab",
+              "left": false
+            },
+            {
+              "hash": "79cb70170e5c787dcc86cfc5c1ee44691aa6fa9df3ae1dfd806b3a8d6abaf756",
+              "left": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "por-03",
+      "suite": "por1",
+      "description": "Forged Ed25519 signature on POR/1 vault rejected",
+      "expectOk": false,
+      "input": {
+        "vault": {
+          "spec": "por/1",
+          "agentId": "fx-21fe-31df-a154-a261",
+          "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "fields": [
+            "face",
+            "voice",
+            "geo",
+            "xyz",
+            "wrgba",
+            "time",
+            "pub"
+          ],
+          "leaves": [
+            "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+            "55b1c7d0b51d1b83f9c53421f5728299b43436d99cc4e02d3088e18846a5ad8c",
+            "f4f915155aad450011e8e813045cef8af6725c42cb84d39dd046de594b7728e1",
+            "35edc7966d1c20ed727958ba5d8c6400493afa015f68b6347daf537311314eda",
+            "039b2552f5e96e1e7b3200a1e293ffbc0cab4c1db31894227432763c5ab65980",
+            "27385ab48c2350f074acb6915354380d58804c76bfb110e427ba36283f9d52cf",
+            "4ebbe859de728e527bf2c053d3d7dabc7745b6c0c95cdf9dd7952317c3000b1f"
+          ],
+          "merkle": "rfc6962-sha256",
+          "root": "c4534dc010a01866c356afe8578616ad95fa91408b677c928f3a3a50c1d6e044",
+          "sig": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "proofCheck": {
+          "fieldIndex": 0,
+          "leafHex": "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+          "path": [
+            {
+              "hash": "2bb00a1cfbcdad8825a1b90dd5b06aaf8580ce1e8036b66d66213c172ffbc0c4",
+              "left": false
+            },
+            {
+              "hash": "fd1c4b42f3d6dfc6ceec4948fdbb98e02fea76741ed9fdcd6bfb9664435faaab",
+              "left": false
+            },
+            {
+              "hash": "79cb70170e5c787dcc86cfc5c1ee44691aa6fa9df3ae1dfd806b3a8d6abaf756",
+              "left": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "por-04",
+      "suite": "por1",
+      "description": "Raw unhashed biometric string in POR/1 leaves rejected fail-closed",
+      "expectOk": false,
+      "input": {
+        "vault": {
+          "spec": "por/1",
+          "agentId": "fx-21fe-31df-a154-a261",
+          "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+          "issuedAt": "2026-11-26T00:00:00.000Z",
+          "fields": [
+            "face",
+            "voice",
+            "geo",
+            "xyz",
+            "wrgba",
+            "time",
+            "pub"
+          ],
+          "leaves": [
+            "RAW_UNHASHED_BIOMETRIC_PAYLOAD",
+            "55b1c7d0b51d1b83f9c53421f5728299b43436d99cc4e02d3088e18846a5ad8c",
+            "f4f915155aad450011e8e813045cef8af6725c42cb84d39dd046de594b7728e1",
+            "35edc7966d1c20ed727958ba5d8c6400493afa015f68b6347daf537311314eda",
+            "039b2552f5e96e1e7b3200a1e293ffbc0cab4c1db31894227432763c5ab65980",
+            "27385ab48c2350f074acb6915354380d58804c76bfb110e427ba36283f9d52cf",
+            "4ebbe859de728e527bf2c053d3d7dabc7745b6c0c95cdf9dd7952317c3000b1f"
+          ],
+          "merkle": "rfc6962-sha256",
+          "root": "c4534dc010a01866c356afe8578616ad95fa91408b677c928f3a3a50c1d6e044",
+          "sig": "9f224c6700a7bad7edd2682c7e99be236fd1338389b2abe14a23b73526c6c6550d47ba0127f0013f5295de4d43b4ac5446980baa58e8f1db587f103005488403"
+        },
+        "proofCheck": {
+          "fieldIndex": 0,
+          "leafHex": "fdfea8a559292d76a662db063cc23ebcd6b6256989b6860fdb8958ab9567e744",
+          "path": [
+            {
+              "hash": "2bb00a1cfbcdad8825a1b90dd5b06aaf8580ce1e8036b66d66213c172ffbc0c4",
+              "left": false
+            },
+            {
+              "hash": "fd1c4b42f3d6dfc6ceec4948fdbb98e02fea76741ed9fdcd6bfb9664435faaab",
+              "left": false
+            },
+            {
+              "hash": "79cb70170e5c787dcc86cfc5c1ee44691aa6fa9df3ae1dfd806b3a8d6abaf756",
+              "left": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "opeg-01",
+      "suite": "opeg1",
+      "description": "Valid OPEG/1 EXECUTE_AND_RECEIVE commit bound to signed SVA-ER/1 receipt",
+      "expectOk": true,
+      "input": {
+        "spec": "opeg/1",
+        "state": "S4_COMMIT",
+        "mode": "EXECUTE_AND_RECEIVE",
+        "sourcePriority": [
+          "runtime_receipt",
+          "memory_artifact",
+          "initial_prompt"
+        ],
+        "sanitizer": {
+          "status": "SUCCESS",
+          "rSan": {
+            "experiment": "EP3_PT_SYMMETRIC_PUISEUX",
+            "puiseuxExponent": 0.333333,
+            "leadingAlpha": -1
+          },
+          "rSanSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+        },
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_opeg_ep3",
+            "deliverableSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde",
+            "merkleRoot": "0dea62bb691fe72077f6045e40f4f32e69ab967d47f1320f0c4d97d8f5027c4f",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "223815aab9db14994bdcde3e9a2da819225bc93eca1f73e64ac0cb6d364c42ed995bab39af5a83ce433f57085ec5f61e34305526ff111085a58b12b35f71d70b",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "opeg-sanitizer",
+              "data": {
+                "id": "ms_opeg_ep3",
+                "mode": "EXECUTE_AND_RECEIVE",
+                "resultHash": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "8c1e94d4fb0ea32ecba73d0b42789169bf04df62900dceae0f3f96a4397ad840",
+              "sig": "9dda132da24d49e975c99a105315cbae732d9eebf1ffbde825f0f47147d8439d99cfea70e46822539d6df2c4e8c074c258eb2fe34e51750ec6610945ebe02905",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "opeg-02",
+      "suite": "opeg1",
+      "description": "OPEG/1 DIRECT_INFERENCE bypass rejected fail-closed",
+      "expectOk": false,
+      "input": {
+        "spec": "opeg/1",
+        "state": "S4_COMMIT",
+        "mode": "DIRECT_INFERENCE",
+        "sourcePriority": [
+          "runtime_receipt",
+          "memory_artifact",
+          "initial_prompt"
+        ],
+        "sanitizer": {
+          "status": "SUCCESS",
+          "rSan": {
+            "experiment": "EP3_PT_SYMMETRIC_PUISEUX",
+            "puiseuxExponent": 0.333333,
+            "leadingAlpha": -1
+          },
+          "rSanSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+        },
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_opeg_ep3",
+            "deliverableSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde",
+            "merkleRoot": "2f9a5ccf2a810dc7f2aa249b0459177ae89161728a476e4aa9f258be8d838366",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "48d6e867c16dfd3a1b617e29a714f8277a770b837a66c40480f19a7a8c4450fc3a645b14056d62c37ca13ad5445f682a77dc71ea633ab58bebd6c618cd4c9808",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "opeg-sanitizer",
+              "data": {
+                "id": "ms_opeg_ep3",
+                "mode": "DIRECT_INFERENCE",
+                "resultHash": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "d631eae08e8ac7d8c133a9fec6b5ef7d8d85999d23e472dec60c685be40e88c7",
+              "sig": "17746305390981068074938e31ada13891dc7846aa8a112a08b663bc8f75229013d4d5b053c43eaca9a95e13642b0a16425b131c93eb12ddc6a562844893f506",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "opeg-03",
+      "suite": "opeg1",
+      "description": "Post-execution R_san tamper (alpha -1 -> +1) caught by OPEG/1 + SVA-ER/1",
+      "expectOk": false,
+      "input": {
+        "spec": "opeg/1",
+        "state": "S4_COMMIT",
+        "mode": "EXECUTE_AND_RECEIVE",
+        "sourcePriority": [
+          "runtime_receipt",
+          "memory_artifact",
+          "initial_prompt"
+        ],
+        "sanitizer": {
+          "status": "SUCCESS",
+          "rSan": {
+            "experiment": "EP3_PT_SYMMETRIC_PUISEUX",
+            "puiseuxExponent": 0.333333,
+            "leadingAlpha": 1
+          },
+          "rSanSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+        },
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_opeg_ep3",
+            "deliverableSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde",
+            "merkleRoot": "0dea62bb691fe72077f6045e40f4f32e69ab967d47f1320f0c4d97d8f5027c4f",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "223815aab9db14994bdcde3e9a2da819225bc93eca1f73e64ac0cb6d364c42ed995bab39af5a83ce433f57085ec5f61e34305526ff111085a58b12b35f71d70b",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "opeg-sanitizer",
+              "data": {
+                "id": "ms_opeg_ep3",
+                "mode": "EXECUTE_AND_RECEIVE",
+                "resultHash": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "8c1e94d4fb0ea32ecba73d0b42789169bf04df62900dceae0f3f96a4397ad840",
+              "sig": "9dda132da24d49e975c99a105315cbae732d9eebf1ffbde825f0f47147d8439d99cfea70e46822539d6df2c4e8c074c258eb2fe34e51750ec6610945ebe02905",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "opeg-04",
+      "suite": "opeg1",
+      "description": "Forged SVA-ER/1 receipt inside OPEG/1 commit rejected",
+      "expectOk": false,
+      "input": {
+        "spec": "opeg/1",
+        "state": "S4_COMMIT",
+        "mode": "EXECUTE_AND_RECEIVE",
+        "sourcePriority": [
+          "runtime_receipt",
+          "memory_artifact",
+          "initial_prompt"
+        ],
+        "sanitizer": {
+          "status": "SUCCESS",
+          "rSan": {
+            "experiment": "EP3_PT_SYMMETRIC_PUISEUX",
+            "puiseuxExponent": 0.333333,
+            "leadingAlpha": -1
+          },
+          "rSanSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+        },
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_opeg_ep3",
+            "deliverableSha256": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde",
+            "merkleRoot": "0dea62bb691fe72077f6045e40f4f32e69ab967d47f1320f0c4d97d8f5027c4f",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "opeg-sanitizer",
+              "data": {
+                "id": "ms_opeg_ep3",
+                "mode": "EXECUTE_AND_RECEIVE",
+                "resultHash": "3bc62ba44cb258a9e2c6eab8947c92a5d59cd987319776465924f9a1c0562cde"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "8c1e94d4fb0ea32ecba73d0b42789169bf04df62900dceae0f3f96a4397ad840",
+              "sig": "9dda132da24d49e975c99a105315cbae732d9eebf1ffbde825f0f47147d8439d99cfea70e46822539d6df2c4e8c074c258eb2fe34e51750ec6610945ebe02905",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        }
       }
     }
   ]

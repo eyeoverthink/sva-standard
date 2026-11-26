@@ -327,6 +327,48 @@ add('vsc-13', 'vsc1', 'Mismatched runtime/encoding (wasm-core-1 with utf8) rejec
   codeSha256: sha256(Buffer.from('\x00asm\x01\x00\x00\x00', 'utf8')),
 }));
 
+// VSC/1 v1.4 Signed WASM Test-Result Quorum (vsc-vote/1) & Owner Veto (vsc-veto/1)
+const sampleResultsDigest = sha256(canonical([{ input: [10000, 20, 10], output: 7200, pass: true }]));
+function makeVscVote(overrides = {}, key = KEY_B) {
+  const body = {
+    spec: 'vsc-vote/1',
+    targetCodeSha256: sha256(Buffer.from(VALID_WASM_B64, 'base64')),
+    author: KEY_A.pubHex,
+    voter: key.pubHex,
+    passed: 1,
+    total: 1,
+    resultsSha256: sampleResultsDigest,
+    issuedAt: '2026-11-26T00:00:00.000Z',
+    ...overrides,
+  };
+  delete body.sig;
+  return { ...body, sig: key.sign(canonical(body)) };
+}
+function makeVscVeto(overrides = {}, key = KEY_A) {
+  const body = {
+    spec: 'vsc-veto/1',
+    targetCodeSha256: sha256(Buffer.from(VALID_WASM_B64, 'base64')),
+    reason: 'Operator policy withdrawal',
+    issuedAt: '2026-11-26T00:00:00.000Z',
+    by: key.pubHex,
+    ...overrides,
+  };
+  delete body.sig;
+  return { ...body, sig: key.sign(canonical(body)) };
+}
+add('vsc-14', 'vsc1', 'Valid vsc-vote/1 signed WASM test-result vote from independent peer', true, {
+  ...makeVscVote(), expectedResultsSha256: sampleResultsDigest,
+});
+add('vsc-15', 'vsc1', 'Self-vote (voter === author) rejected fail-closed', false, {
+  ...makeVscVote({ voter: KEY_A.pubHex }, KEY_A), expectedResultsSha256: sampleResultsDigest,
+});
+add('vsc-16', 'vsc1', 'Dishonest vsc-vote/1 with mismatched resultsSha256 rejected as inconsistent', false, {
+  ...makeVscVote({ resultsSha256: 'e'.repeat(64) }, KEY_B), expectedResultsSha256: sampleResultsDigest,
+});
+add('vsc-17', 'vsc1', 'Valid vsc-veto/1 signed owner withdrawal', true, {
+  ...makeVscVeto(), ownerPubKey: KEY_A.pubHex,
+});
+
 // ==================== 5. EMA/1 EGRESS MEMBRANE ATTESTATIONS (11 vectors) ====================
 function makeEma({ mode = 'SEALED_EGRESS', outboundPayload = 'Patient ⟦PERSON_1⟧ (⟦SSN_1⟧) via ⟦EMAIL_1⟧.', originals = [], hmacKeyHex = HMAC_KEY, airgap = null, overrides = {}, key = KEY_A } = {}) {
   const payload = mode === 'ONLY_ON_DEVICE' ? '' : outboundPayload;
@@ -688,8 +730,86 @@ add('wasm-14', 'wasm_exec', 'SVA v1.2 f64 NaN -> i32.trunc_f64_s (0.0/0.0) traps
   capsule: CAP_TRUNC_TRAP, args: [0.0, 0.0], expectTrap: 'invalid_conversion', fuelLimit: 1000,
 });
 
+// ==================== 7. POR/1 PROOF-OF-REALITY VAULT PROFILE (4 vectors) ====================
+function agentIdOf(pubHex) {
+  const h = sha256(Buffer.from(pubHex, 'hex')).slice(0, 16);
+  return `fx-${h.slice(0, 4)}-${h.slice(4, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}`;
+}
+function makePorVault({ key = KEY_A, fields = ['face', 'voice', 'geo', 'xyz', 'wrgba', 'time', 'pub'], rawValues = null } = {}) {
+  const vals = rawValues || ['<face.jpg bytes>', '<voice.wav bytes>', '37.8044,-122.2712', '0.12,0.44,0.98', '0.70,255,180,90,255', '2026-11-26T00:00:00.000Z', key.pubHex];
+  const leaves = vals.map((v) => sha256(Buffer.from(String(v), 'utf8')));
+  const tree = buildTree(leaves);
+  const body = {
+    spec: 'por/1',
+    agentId: agentIdOf(key.pubHex),
+    publicKey: key.pubHex,
+    issuedAt: '2026-11-26T00:00:00.000Z',
+    fields,
+    leaves,
+    merkle: 'rfc6962-sha256',
+    root: tree.root,
+  };
+  return {
+    vault: { ...body, sig: key.sign(canonical(body)) },
+    proofCheck: { fieldIndex: 0, leafHex: leaves[0], path: tree.proofOf(1) },
+  };
+}
+{
+  const porOk = makePorVault();
+  add('por-01', 'por1', 'Valid 7-leaf POR/1 local-hash vault with RFC 6962 inclusion proof for face leaf', true, porOk);
+
+  const porTamper = makePorVault();
+  porTamper.proofCheck.leafHex = sha256(Buffer.from('<face.jpg bytez>', 'utf8'));
+  add('por-02', 'por1', '1-byte change in face leaf breaks POR/1 inclusion proof', false, porTamper);
+
+  const porBadSig = makePorVault();
+  porBadSig.vault.sig = '0'.repeat(128);
+  add('por-03', 'por1', 'Forged Ed25519 signature on POR/1 vault rejected', false, porBadSig);
+
+  const porRawBio = makePorVault();
+  porRawBio.vault.leaves[0] = 'RAW_UNHASHED_BIOMETRIC_PAYLOAD';
+  const { sig: _s, ...rawBody } = porRawBio.vault;
+  porRawBio.vault.sig = KEY_A.sign(canonical(rawBody));
+  add('por-04', 'por1', 'Raw unhashed biometric string in POR/1 leaves rejected fail-closed', false, porRawBio);
+}
+
+// ==================== 8. OPEG/1 EMPIRICAL GROUNDING GATE (4 vectors) ====================
+function makeOpegCommit({ mode = 'EXECUTE_AND_RECEIVE', rSan = { experiment: 'EP3_PT_SYMMETRIC_PUISEUX', puiseuxExponent: 0.333333, leadingAlpha: -1 }, key = KEY_A } = {}) {
+  const rSanCanon = canonical(rSan);
+  const rSanSha256 = sha256(rSanCanon);
+  const bound = makeSvaEr({
+    missionId: 'ms_opeg_ep3',
+    deliverable: rSanCanon,
+    clockStatus: 'attested',
+    key,
+    events: [{ kind: 'mission.complete', actor: 'opeg-sanitizer', data: { id: 'ms_opeg_ep3', mode, resultHash: rSanSha256 } }],
+  });
+  return {
+    spec: 'opeg/1',
+    state: 'S4_COMMIT',
+    mode,
+    sourcePriority: ['runtime_receipt', 'memory_artifact', 'initial_prompt'],
+    sanitizer: { status: 'SUCCESS', rSan, rSanSha256 },
+    receipt: bound.receipt,
+  };
+}
+{
+  add('opeg-01', 'opeg1', 'Valid OPEG/1 EXECUTE_AND_RECEIVE commit bound to signed SVA-ER/1 receipt', true, makeOpegCommit());
+
+  const opDirect = makeOpegCommit({ mode: 'DIRECT_INFERENCE' });
+  add('opeg-02', 'opeg1', 'OPEG/1 DIRECT_INFERENCE bypass rejected fail-closed', false, opDirect);
+
+  const opTamper = makeOpegCommit();
+  opTamper.sanitizer.rSan.leadingAlpha = 1; // post-execution sign tamper (-1 -> +1)
+  add('opeg-03', 'opeg1', 'Post-execution R_san tamper (alpha -1 -> +1) caught by OPEG/1 + SVA-ER/1', false, opTamper);
+
+  const opForgedReceipt = makeOpegCommit();
+  opForgedReceipt.receipt.statementSig = '0'.repeat(128);
+  add('opeg-04', 'opeg1', 'Forged SVA-ER/1 receipt inside OPEG/1 commit rejected', false, opForgedReceipt);
+}
+
 const doc = {
-  specVersion: 'sva-conformance/1.3',
+  specVersion: 'sva-conformance/1.4',
   generatedWith: 'node:' + process.version,
   total: vectors.length,
   suites: {
@@ -699,6 +819,8 @@ const doc = {
     vsc1: vectors.filter((v) => v.suite === 'vsc1').length,
     ema1: vectors.filter((v) => v.suite === 'ema1').length,
     wasm_exec: vectors.filter((v) => v.suite === 'wasm_exec').length,
+    por1: vectors.filter((v) => v.suite === 'por1').length,
+    opeg1: vectors.filter((v) => v.suite === 'opeg1').length,
   },
   vectors,
 };

@@ -336,6 +336,66 @@ export async function runImmuneMeshDemo() {
     const piiBlocked = await A.emitRevocation(piiRev, [B]);
     const unsignedImport = B.importSkill({ ...capHealthy, sig: null });
 
+    // Scenario 5 (v1.4): Signed WASM Test-Result Quorum (vsc-vote/1) + Dishonest Voter Rejection + Owner Veto (vsc-veto/1)
+    const t5 = performance.now();
+    const ownerKey = makeKeypair();
+    const capCube = makeCapsule(
+      'wasm_cube',
+      wasmI32(1, [0x20, 0, 0x20, 0, 0x6c, 0x20, 0, 0x6c]), // x * x * x
+      A.key,
+      [{ input: [7], output: 343 }, { input: [12], output: 1728 }],
+    );
+    const evalCapsuleTests = (cap) => {
+      const bytes = Buffer.from(cap.code, 'base64');
+      const results = cap.tests.map((t) => {
+        const r = runWasmFuelMetered(bytes, t.input, 1000);
+        return { input: t.input, expect: t.output, got: r.trap ? null : r.value, pass: !r.trap && r.value === t.output };
+      });
+      return { passed: results.filter((r) => r.pass).length, total: results.length, resultsSha256: sha256(canonical(results)) };
+    };
+    const makeVote = (cap, voterKey, overrideResultsSha = null) => {
+      const ev = evalCapsuleTests(cap);
+      const body = {
+        spec: 'vsc-vote/1',
+        targetCodeSha256: cap.codeSha256,
+        author: cap.signer,
+        voter: voterKey.pubHex,
+        passed: ev.passed,
+        total: ev.total,
+        resultsSha256: overrideResultsSha || ev.resultsSha256,
+        issuedAt: new Date().toISOString(),
+      };
+      return { ...body, sig: voterKey.sign(canonical(body)) };
+    };
+    const hubCheck = evalCapsuleTests(capCube);
+    const votes = [
+      makeVote(capCube, A.key),                         // self-vote -> MUST reject
+      makeVote(capCube, D.key, 'f'.repeat(64)),         // dishonest rubber-stamp -> MUST reject as inconsistent
+      makeVote(capCube, B.key),                         // consistent passing vote #1
+      makeVote(capCube, C.key),                         // consistent passing vote #2 -> quorum reached!
+    ];
+    let selfVoteRejected = false, dishonestVoteRejected = false;
+    const acceptedVoters = new Set();
+    for (const v of votes) {
+      const { sig, ...unsigned } = v;
+      if (!ed25519Verify(v.voter, canonical(unsigned), sig)) continue;
+      if (v.voter === v.author) { selfVoteRejected = true; continue; }
+      if (v.resultsSha256 !== hubCheck.resultsSha256 || v.passed !== v.total) { dishonestVoteRejected = true; continue; }
+      acceptedVoters.add(v.voter);
+    }
+    let cubeStatus = acceptedVoters.size >= 2 ? 'adopted' : 'proposed';
+    const vetoBody = {
+      spec: 'vsc-veto/1',
+      targetCodeSha256: capCube.codeSha256,
+      reason: 'Owner policy exercise',
+      issuedAt: new Date().toISOString(),
+      by: ownerKey.pubHex,
+    };
+    const veto = { ...vetoBody, sig: ownerKey.sign(canonical(vetoBody)) };
+    const vetoValid = veto.by === ownerKey.pubHex && ed25519Verify(ownerKey.pubHex, canonical(vetoBody), veto.sig);
+    const statusAfterVeto = vetoValid ? 'vetoed' : cubeStatus;
+    const s5Ms = Math.round((performance.now() - t5) * 100) / 100;
+
     return {
       ok: (
         B.skills.get(capCrash.codeSha256).status === 'quarantined' &&
@@ -350,7 +410,11 @@ export async function runImmuneMeshDemo() {
         C.peers.get(D.key.pubHex).trust === 'known' &&
         afterDemote.results.every((r) => r.status === 403) &&
         piiBlocked.blocked === true &&
-        unsignedImport.imported === false
+        unsignedImport.imported === false &&
+        selfVoteRejected === true &&
+        dishonestVoteRejected === true &&
+        cubeStatus === 'adopted' &&
+        statusAfterVeto === 'vetoed'
       ),
       gpuCalls: 0,
       totalMs: Math.round((performance.now() - t0) * 100) / 100,
@@ -383,6 +447,15 @@ export async function runImmuneMeshDemo() {
           piiAdvisoryBlocked: piiBlocked.blocked,
           piiTypesCaught: piiBlocked.types,
           unsignedCapsuleRejected: !unsignedImport.imported,
+        },
+        skillsByVoteQuorumAndOwnerVeto: {
+          ms: s5Ms,
+          skill: capCube.name,
+          consistentVotes: acceptedVoters.size,
+          selfVoteRejected,
+          dishonestVoteRejected,
+          statusBeforeVeto: cubeStatus,
+          statusAfterVeto,
         },
       },
     };

@@ -1,0 +1,529 @@
+{
+  "format": "svaer1-aer1-interop/1",
+  "svaStandardVersion": "1.4.0",
+  "aer1Reference": {
+    "draft": "draft-zambo-aer1-26",
+    "kitVersion": "1.6.1",
+    "corpusUrl": "https://zambo.dev/aer1/corpus.json",
+    "evaluatedSetDigest": "sha256:4ea44dc07125a6f9b7fa472450a30fb56265771cfe87b1772a02b03d1fc166f2",
+    "bound04VectorSha256": "51499b6a7633af52657881ee228ba7dadd77d58fb53dd2924c5f9fe3f05da3e4"
+  },
+  "keys": {
+    "KEY_A": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    "KEY_B": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+  },
+  "cases": [
+    {
+      "id": "interop-01",
+      "origin": "svaer-04",
+      "description": "Valid receipt with clock.status=unattested under KEY_A; AER-1 core passes with clockAttestation=absent and issuerKeyBinding=absent",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_unatt",
+            "deliverableSha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+            "merkleRoot": "62c6ea8f048aef59d37be9d5f4704e3f856173e830ad755f98862d1922690082",
+            "merkle": "rfc6962-sha256",
+            "size": 1,
+            "entries": 1,
+            "clock": {
+              "status": "unattested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "4c4d9d01421ddc82b0b3586734c365eeffaa89b570d2c99f9069934be43f9764a4ba919a550ab31dbdced1edbd07774a44f56a231387a1fe37fd3edbfacc890d",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_unatt",
+                "score": 0.9,
+                "resultHash": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "b99b818297b581eb3eeb7a7491057a93c6deacf5d1f3f5f58c966154d63472aa",
+              "sig": "4cecd69a6ab84c664ad4a49829b7867cc3f1a9d0843f4b0aef1a5db42b73bb21c376b909967dd5da4fa7ffb742a831c59cb0cc38de2f7959ada02d270a55220b",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": []
+            }
+          ]
+        },
+        "deliverable": "ok"
+      },
+      "aer1": {
+        "id": "11111111-1111-4111-8111-111111111104",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "mission.complete",
+          "version": "1.0.0",
+          "scope": "local-unattested-clock"
+        },
+        "provenance_class": "EXECUTED BY SVA-AGENCY",
+        "canonical_bytes": "eyJpbnB1dHMiOnsibWlzc2lvbklkIjoibXNfdW5hdHQifSwiaXNzdWVyX2NsYWltcyI6eyJwcm92ZW5hbmNlX2NsYXNzIjoiRVhFQ1VURUQgQlkgU1ZBLUFHRU5DWSJ9LCJvdXRwdXRzIjp7ImRlbGl2ZXJhYmxlIjoib2siLCJzY29yZSI6MC45fSwicmVjZWlwdF9zY2hlbWFfdmVyc2lvbiI6IjAuNCIsInRvb2wiOiJtaXNzaW9uLmNvbXBsZXRlIn0=",
+        "output_hash": "sha256:1d9ace69185d0ec8d805b9fbb82ae1dc76d7d8c40e81a21e1f64571a59680b93",
+        "metadata_hash": "sha256:1e6fd6290923ec425c211e6932d5e0efc26706bc240a6fd73f838d7a845022a4",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "unattested",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
+    },
+    {
+      "id": "interop-02",
+      "origin": "svaer-05",
+      "description": "Valid receipt with clock.status=drift under secondary key KEY_B; AER-1 core passes with clockAttestation=absent and issuerKeyBinding=absent",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_drift",
+            "deliverableSha256": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da",
+            "merkleRoot": "2fb87cd080896bb4f6ee48e234d7b0fcbf72c46adc228186d63bd1aa4b73669e",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "drift",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "5db02cc48cc077c44f28697f482e5c8d4c613a24f44f896f0a3e3333b14aad6d645550182ca666d0b1b32edd472de0675f2d34ab71d2eff25edd7d18ce562205",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "tycho",
+              "data": {
+                "missionId": "ms_drift",
+                "tool": "calc"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "sig": "ea29bbd487f5ac67d9ad83f2e771a3aff1262eff8c57955b9c17c483c5c16715e81c7184589234119178942fae9b870af16557a0c5c7a0a294bca12b33e3ef08",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "58101019cc3636c10086cacdc9dafc781afb724e9a784594e2af59aece894630",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_drift",
+                "score": 0.88,
+                "resultHash": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da"
+              },
+              "prev": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "hash": "35eebd32d520d1aa4e1e486c916b930e8209925ef7ba5f6a16a0fd9f0fd988dd",
+              "sig": "aa92eb7e6cb76783a6c2ac84466d26da238f1d3a51f1f5702e7a4755208bc2acd8e2f6c4a85e9e8c54893e498de356e823591747de47ddd994d967270593a701",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "2a43bd63d966c9c9c38dc2836b16c1c38a8f9d4c7ac40eeb954f255bc2725d5c",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "drift-ok"
+      },
+      "aer1": {
+        "id": "11111111-1111-4111-8111-111111111105",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "calc",
+          "version": "1.0.0",
+          "scope": "local-drifted-clock"
+        },
+        "provenance_class": "EXECUTED BY SVA-AGENCY",
+        "canonical_bytes": "eyJpbnB1dHMiOnsibWlzc2lvbklkIjoibXNfZHJpZnQifSwiaXNzdWVyX2NsYWltcyI6eyJwcm92ZW5hbmNlX2NsYXNzIjoiRVhFQ1VURUQgQlkgU1ZBLUFHRU5DWSJ9LCJvdXRwdXRzIjp7ImRlbGl2ZXJhYmxlIjoiZHJpZnQtb2siLCJzY29yZSI6MC44OH0sInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJ0b29sIjoiY2FsYyJ9",
+        "output_hash": "sha256:4d8291a929d5e2ebcc7853e82495f9eda5fed087c7cf748709684881445bf446",
+        "metadata_hash": "sha256:30a77ffb870f913480ec0b6e8aaec02e7c14d3863f620018bcf7e20d213f00c5",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "drift",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
+    },
+    {
+      "id": "interop-03",
+      "origin": "svaer-05-key-swap",
+      "description": "Key-binding negative control: swapping agency.publicKey (KEY_B -> KEY_A) fails SVA-ER/1 closed; tampering created_at in AER-1 v0.4 fails metadata_hash",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "ms_drift",
+            "deliverableSha256": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da",
+            "merkleRoot": "2fb87cd080896bb4f6ee48e234d7b0fcbf72c46adc228186d63bd1aa4b73669e",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "drift",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "5db02cc48cc077c44f28697f482e5c8d4c613a24f44f896f0a3e3333b14aad6d645550182ca666d0b1b32edd472de0675f2d34ab71d2eff25edd7d18ce562205",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "tycho",
+              "data": {
+                "missionId": "ms_drift",
+                "tool": "calc"
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "sig": "ea29bbd487f5ac67d9ad83f2e771a3aff1262eff8c57955b9c17c483c5c16715e81c7184589234119178942fae9b870af16557a0c5c7a0a294bca12b33e3ef08",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "58101019cc3636c10086cacdc9dafc781afb724e9a784594e2af59aece894630",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "lumen",
+              "data": {
+                "id": "ms_drift",
+                "score": 0.88,
+                "resultHash": "e1a82abe5c4143bd46beef8c4ab23b2e01996c9816aab208b55db7681326e8da"
+              },
+              "prev": "311e23a87c332d00d7a26f14b0fd33d7f964beaf17a063d88e49b020711d62b4",
+              "hash": "35eebd32d520d1aa4e1e486c916b930e8209925ef7ba5f6a16a0fd9f0fd988dd",
+              "sig": "aa92eb7e6cb76783a6c2ac84466d26da238f1d3a51f1f5702e7a4755208bc2acd8e2f6c4a85e9e8c54893e498de356e823591747de47ddd994d967270593a701",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "2a43bd63d966c9c9c38dc2836b16c1c38a8f9d4c7ac40eeb954f255bc2725d5c",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "drift-ok"
+      },
+      "aer1": {
+        "id": "11111111-1111-4111-8111-111111111105",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "calc",
+          "version": "1.0.0",
+          "scope": "local-drifted-clock"
+        },
+        "provenance_class": "EXECUTED BY SVA-AGENCY",
+        "canonical_bytes": "eyJpbnB1dHMiOnsibWlzc2lvbklkIjoibXNfZHJpZnQifSwiaXNzdWVyX2NsYWltcyI6eyJwcm92ZW5hbmNlX2NsYXNzIjoiRVhFQ1VURUQgQlkgU1ZBLUFHRU5DWSJ9LCJvdXRwdXRzIjp7ImRlbGl2ZXJhYmxlIjoiZHJpZnQtb2siLCJzY29yZSI6MC44OH0sInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJ0b29sIjoiY2FsYyJ9",
+        "output_hash": "sha256:4d8291a929d5e2ebcc7853e82495f9eda5fed087c7cf748709684881445bf446",
+        "metadata_hash": "sha256:30a77ffb870f913480ec0b6e8aaec02e7c14d3863f620018bcf7e20d213f00c5",
+        "verification_status": "verified"
+      },
+      "aer1MetadataTamper": {
+        "id": "11111111-1111-4111-8111-111111111105",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:05:00.000Z",
+        "tool": {
+          "name": "calc",
+          "version": "1.0.0",
+          "scope": "local-drifted-clock"
+        },
+        "provenance_class": "EXECUTED BY SVA-AGENCY",
+        "canonical_bytes": "eyJpbnB1dHMiOnsibWlzc2lvbklkIjoibXNfZHJpZnQifSwiaXNzdWVyX2NsYWltcyI6eyJwcm92ZW5hbmNlX2NsYXNzIjoiRVhFQ1VURUQgQlkgU1ZBLUFHRU5DWSJ9LCJvdXRwdXRzIjp7ImRlbGl2ZXJhYmxlIjoiZHJpZnQtb2siLCJzY29yZSI6MC44OH0sInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJ0b29sIjoiY2FsYyJ9",
+        "output_hash": "sha256:4d8291a929d5e2ebcc7853e82495f9eda5fed087c7cf748709684881445bf446",
+        "metadata_hash": "sha256:30a77ffb870f913480ec0b6e8aaec02e7c14d3863f620018bcf7e20d213f00c5",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": false,
+          "outcome": "verification_failed",
+          "deliverable": "not_checked",
+          "clock": "drift",
+          "keyBinding": "verification_failed"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        },
+        "aer1MetadataTamper": {
+          "ok": false,
+          "outcome": "verification_failed"
+        }
+      }
+    },
+    {
+      "id": "interop-04",
+      "origin": "aer1:base/test-vectors/valid/bound-04.json",
+      "description": "AER-1 kit 1.6.1 valid/bound-04.json (get_weather Austin) expressed in SVA-ER/1 with attested clock and KEY_A Ed25519 binding",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "SVA Conformance Agency",
+            "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "aer1-bound-04",
+            "deliverableSha256": "aa33414bc33cbf7adccb10bb897551d96bcc0c7aa2bfee1742fc0d7b9cae4c13",
+            "merkleRoot": "a790783fe41175b593e16d55938dd224b810338fe943b3a9eb23c24a9afb6f31",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "attested",
+              "issuedAt": "2026-10-08T12:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "b323960dea960d834f92e2d30906861c2ef446f8bf7e620132f060a2c58523bc678a68a03274592d3c1c72a3ac11912278cf1de34cbd9d99ddc7a4a71ac3d30a",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-10-08T12:00:00.000Z",
+              "kind": "tool.call",
+              "actor": "edge",
+              "data": {
+                "missionId": "aer1-bound-04",
+                "tool": "get_weather",
+                "inputs": {
+                  "city": "Austin"
+                }
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "0e62616e90acf5635440c94cfdc9de62e68378871e1fac0eeb175a78894fb5cc",
+              "sig": "975dd8394b1a1837826f882b0c8b90369695fe251afe8b2f91a9ed4755bbfa415a5731be610a79491ef144bb375ff652d1f33ef9d13db3d1189949fb6a06d407",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "a734df008b9af5d858b9e543ea60cbfcb897e3453db97e9a9e570c6d9e9603ae",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-10-08T12:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "edge",
+              "data": {
+                "id": "aer1-bound-04",
+                "aer1Id": "294911b8-ac49-4f63-99f4-129a7e6d9c18",
+                "resultHash": "aa33414bc33cbf7adccb10bb897551d96bcc0c7aa2bfee1742fc0d7b9cae4c13"
+              },
+              "prev": "0e62616e90acf5635440c94cfdc9de62e68378871e1fac0eeb175a78894fb5cc",
+              "hash": "a25c231695957e9012d2aaf805122590509ac81a7216d61f4a6574d138ce0def",
+              "sig": "5f6e58d05304fc9c940a47c3a3b9c0d47c4fec3ebf1f9c96c17e85a87dc247687a5f1dafdfbbe8ac9a688086123617e8640b4ee5f338e65741580f7d15758c08",
+              "signer": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+              "proof": [
+                {
+                  "hash": "58ca82e97327e786510bd598f59b487eb23838af6a2fef02342371c43d78c075",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "sunny, 75F"
+      },
+      "aer1": {
+        "id": "294911b8-ac49-4f63-99f4-129a7e6d9c18",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-10-08T12:00:00.000Z",
+        "tool": {
+          "name": "get_weather",
+          "version": "1.0.0",
+          "scope": "public"
+        },
+        "provenance_class": "EXECUTED BY ZAMBO",
+        "canonical_bytes": "eyJpbnB1dHMiOnsiY2l0eSI6IkF1c3RpbiJ9LCJpc3N1ZXJfY2xhaW1zIjp7InByb3ZlbmFuY2VfY2xhc3MiOiJFWEVDVVRFRCBCWSBaQU1CTyJ9LCJvdXRwdXRzIjoic3VubnksIDc1RiIsInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJ0b29sIjoiZ2V0X3dlYXRoZXIifQ==",
+        "output_hash": "sha256:3f113a9b490bc0b2a22b56a22b48cd9396b2e6a8082824cf56ca85fe53e795d6",
+        "metadata_hash": "sha256:0131154d838fbe47bb5f0db3b2c859f93a3ebe0d47ce027a9fdc013d4b4b25fd",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "attested",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
+    },
+    {
+      "id": "interop-05",
+      "origin": "fmp1-offline-no-rtc",
+      "description": "Real-world store-and-forward case: FMP/1 Raspberry Pi mesh node without RTC (clock_trusted=false) delivers custodied message after partition",
+      "svaer1": {
+        "receipt": {
+          "spec": "sva-er/1",
+          "agency": {
+            "name": "FMP/1 Offline Mesh Relay (no RTC)",
+            "publicKey": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+          },
+          "statement": {
+            "type": "sva-er.statement",
+            "missionId": "fmp1-custody-42",
+            "deliverableSha256": "0adcd18b116ca6d49966ab51b21ef6c52917bc25735ec671ea4f06c4e9c5acb0",
+            "merkleRoot": "e7b47349575f8aef3209e1a3fc16db2519d62711fb362c6cc7e3362bc9303ff4",
+            "merkle": "rfc6962-sha256",
+            "size": 2,
+            "entries": 2,
+            "clock": {
+              "status": "unattested",
+              "issuedAt": "2026-11-26T00:00:00.000Z",
+              "maxSkewSec": 300
+            }
+          },
+          "statementSig": "0317c64a64e8386a506ee9f49f5d281a2a88d1040ef54d6d7b4db097d34b0259c85030e177d09e1e66d1cd87bcffdf173ff6b5a2f4e4782aab6510cb3bd0ca0e",
+          "entries": [
+            {
+              "seq": 1,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mesh.custody_hold",
+              "actor": "relay-1",
+              "data": {
+                "missionId": "fmp1-custody-42",
+                "clockTrusted": false,
+                "partitionSec": 612
+              },
+              "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+              "hash": "00273975512980fc1f7557908b4e9dbb23cae8261bd0dfdcab0f094fa28e7efd",
+              "sig": "2dec8d9b7797c62cdaaa03de9c7cf5aa25fa731dd53ccae283ad4c3aedcca01b8fed1a260824584d01f85f73cbe83fce6d9154e17034a5cb7b00f0b9793c2400",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "256551186898fb2f24d4c659db25dd17152c9ad5a658a3f9e8989b5e2d7dd7b5",
+                  "left": false
+                }
+              ]
+            },
+            {
+              "seq": 2,
+              "ts": "2026-11-26T00:00:00.000Z",
+              "kind": "mission.complete",
+              "actor": "relay-1",
+              "data": {
+                "id": "fmp1-custody-42",
+                "resultHash": "0adcd18b116ca6d49966ab51b21ef6c52917bc25735ec671ea4f06c4e9c5acb0"
+              },
+              "prev": "00273975512980fc1f7557908b4e9dbb23cae8261bd0dfdcab0f094fa28e7efd",
+              "hash": "834d181193eefbf5c7650fc8f6ce85faad31282ea64c40f1d5163950f02e35a4",
+              "sig": "b7e3ccbda641f51cce59cab877b1b8ee54289bb6b947f267cf725eeb797e431d5ec24b9ff86591879b1e2f3e3e2d6d198874ff782e10fb04208f5fe171d5d70f",
+              "signer": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+              "proof": [
+                {
+                  "hash": "ab8b77cc72c5982d2d8505b8e83bbfeffb4c7a9f214368551950f31645520c07",
+                  "left": true
+                }
+              ]
+            }
+          ]
+        },
+        "deliverable": "CUSTODY_DELIVERED:node-barn-pi:seq=42:hops=3"
+      },
+      "aer1": {
+        "id": "11111111-1111-4111-8111-111111111106",
+        "receipt_schema_version": "0.4",
+        "created_at": "2026-11-26T00:00:00.000Z",
+        "tool": {
+          "name": "fmp1.custody_deliver",
+          "version": "1.0.0",
+          "scope": "offline-mesh-no-rtc"
+        },
+        "provenance_class": "EXECUTED BY SVA-AGENCY",
+        "canonical_bytes": "eyJpbnB1dHMiOnsiY3VzdG9keVNlcSI6NDIsInBhcnRpdGlvblNlYyI6NjEyfSwiaXNzdWVyX2NsYWltcyI6eyJwcm92ZW5hbmNlX2NsYXNzIjoiRVhFQ1VURUQgQlkgU1ZBLUFHRU5DWSJ9LCJvdXRwdXRzIjp7InN0YXR1cyI6IkNVU1RPRFlfREVMSVZFUkVEOm5vZGUtYmFybi1waTpzZXE9NDI6aG9wcz0zIn0sInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJ0b29sIjoiZm1wMS5jdXN0b2R5X2RlbGl2ZXIifQ==",
+        "output_hash": "sha256:d530ea73747d4f1e64ae5f349e243c7830c5b140d3b0500ab4b23b17514a2ad2",
+        "metadata_hash": "sha256:84f885635b3ff7a0f9c64bf0eac0f938eb99b66bfc66747377687e6b7394e63a",
+        "verification_status": "verified"
+      },
+      "expected": {
+        "svaer1": {
+          "ok": true,
+          "outcome": "verified",
+          "deliverable": "verified",
+          "clock": "unattested",
+          "keyBinding": "verified"
+        },
+        "aer1": {
+          "ok": true,
+          "outcome": "verified",
+          "clockAttestation": "absent",
+          "issuerKeyBinding": "absent"
+        }
+      }
+    }
+  ]
+}
